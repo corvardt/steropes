@@ -10,8 +10,13 @@ import { createPool, toBits } from "./pool.js";
 import { runAll, MIN_BITS, CHI2_MIN_BYTES } from "./tests.js";
 import { createReader, DRAWS, rangeDraw } from "./draw.js";
 import { plate, download } from "./art.js";
+import { render as renderBlockie, blockieDraw } from "./blockie.js";
 
 const $ = (id) => document.getElementById(id);
+
+// The draws the bar offers. blockie is appended here rather than living in
+// draw.js's table, which keeps that module free of anything that paints.
+const ALL = { ...DRAWS, blockie: blockieDraw };
 
 // The relay's hostname is deployment configuration, not something to compile in.
 // Until it is set, `?feed=wss://…` drives the page, which is also how dev points
@@ -284,7 +289,12 @@ function present(spec, value, prov, again) {
   const actions = document.createElement("div");
   actions.className = "actions";
 
-  if (spec.kind === "art") {
+  if (spec.kind === "blockie") {
+    const { canvas, text } = renderBlockie(value, prov, ink);
+    canvas.className = "plate";
+    out.append(canvas);
+    actions.append(action("save the blockie", () => download(canvas, `entropic-blockie-${text.slice(0, 8)}.png`)));
+  } else if (spec.kind === "art") {
     const { canvas, hex } = plate(value, prov, ink);
     canvas.className = "plate";
     out.append(canvas);
@@ -339,12 +349,12 @@ async function begin(spec) {
 
 // Built from the DRAWS table rather than written out, so a new draw is one entry
 // in draw.js and nothing here.
-$("draw-buttons").innerHTML = Object.keys(DRAWS)
-  .map((k) => `<button type="button" data-draw="${k}">${DRAWS[k].label}</button>`)
+$("draw-buttons").innerHTML = Object.keys(ALL)
+  .map((k) => `<button type="button" data-draw="${k}">${ALL[k].label}</button>`)
   .join("");
 $("draw-buttons").addEventListener("click", (e) => {
   const kind = e.target.closest("button")?.dataset.draw;
-  if (kind) begin(DRAWS[kind]);
+  if (kind) begin(ALL[kind]);
 });
 
 $("range-form").addEventListener("submit", (e) => {

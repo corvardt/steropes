@@ -44,6 +44,9 @@ Coin flip / dice / d20
 Random integer in range / UUID
 Shuffled deck
 Generative artwork seeded by 256 fresh bits (downloadable, seed printed on it)
+Blockie, the identicon from Tyche. Tile rules taken from Keraunos/ignored/blockie.ts, which is the classic ethereum-blockies construction: 8x8 with the left four columns mirrored, cells weighted 10/23 10/23 3/23, three HSL colours drawn primary then background then spot. Not taken: the other two thirds of that file, a hand-written GIF89a encoder with its own LZW packer, which exists to avoid a canvas. This page has a canvas and saves through toBlob.
+The departure is provenance. Both that file and Tyche's npm build run a seed string through an xorshift PRNG and let the generator paint the tile, which is correct when the tile must be reproducible from an address. Here a generator expanding a seed is the thing being avoided, so every cell and colour reads fresh strikes directly.
+The blockie is the only colour on the site, and it is an artifact rather than interface, which is the whole of the exception to the reserved-white rule.
 6. Stack
 Vanilla JS or lightweight framework + Canvas/WebGL for the walk; no backend needed, the relay already exists and is not Entropic's to build or run.
 ~3 modules: source.js (WS + bit extraction), pool.js (debias + tests), ui.js (render + draws).

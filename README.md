@@ -93,6 +93,43 @@ evaluations. That is what the threshold means, not a defect. The badges
 therefore need three consecutive failures before they turn over, and a single
 red badge is expected. Only a badge that stays red is telling you something.
 
+## Drawing from it
+
+A coin, a d6, a d20, an integer in any range, a UUID, a shuffled deck, a plate
+of generative art, and a blockie.
+
+A draw does not read the pool. It waits for strikes that have not happened yet
+and is answered by the first ones that do, which is why every result carries the
+strikes it consumed and the seconds they spanned. The byte reader is created
+when the button is pressed, so "fresh bits" is structural rather than a promise:
+a reader that did not exist a moment ago cannot be holding anything the pool
+already had. A UUID needs sixteen bytes and cites eight strikes; the artwork
+needs thirty-two and cites sixteen. Two bytes a strike, exactly.
+
+Integers use rejection sampling, never a modulus. With n=6 a modulus hands
+residues 0 and 1 an extra count each out of 256, a 2.4% loaded die that nothing
+short of a histogram would catch, on a page whose whole claim is that it does
+not do that. `npm test` asserts exactly 42 of each face over one byte cycle and
+prints what the modulus would have produced beside it.
+
+The **artwork** is a walk from its own 256 bits, the same form the page draws
+large, with the seed printed underneath in full so the plate can be redrawn from
+its own caption and checked.
+
+The **blockie** is the identicon from Tyche, whose tile rules come from the
+classic ethereum-blockies construction: an 8x8 grid with its left four columns
+mirrored,
+cells weighted 10/23, 10/23, 3/23, and three HSL colours. The difference is
+where the randomness enters. Those implementations run a seed string through an
+xorshift PRNG and let the generator paint the tile, which is right when the tile
+must be reproducible from an address. Here the generator is the thing being
+avoided, so every cell and every colour is read off fresh strikes directly.
+
+It is also the only colour on the site. The rule everywhere else is that white
+is reserved and the lone amber means a failing test, so no part of the interface
+may be colourful. A blockie is not interface: it is output, it sits in a bordered
+plate, and its hues are themselves lightning.
+
 ## Honest limits
 
 **These bits are unpredictable, not secret.** The stream is public. Everyone
@@ -133,7 +170,10 @@ send on your behalf.
 src/          source.js   the socket, the dedup filter, extraction
               pool.js     4KB ring of raw bytes, SHA-256 extraction
               tests.js    the four tests, and the only copy of them
-              ui.js       the walk, the gauges, the badges
+              draw.js     the suspending byte reader, unbiased integers
+              art.js      the artwork plate
+              blockie.js  the identicon, from Tyche's tile rules
+              ui.js       the walk, the gauges, the badges, the draws
               style.css   the palette, shared with Keraunos
 tools/        check.mjs   npm test
               smoke.mjs   npm run smoke

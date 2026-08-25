@@ -13,6 +13,7 @@ import { runAll, controlGood, controlRigged, seeded, MIN_BITS } from "../src/tes
 import { createFilter, lowByte, parseFrame, SPACING_NS } from "../src/source.js";
 import { createPool, toBits, condition } from "../src/pool.js";
 import { createReader, below, between, shuffle, uuid, DECK } from "../src/draw.js";
+import { blockie } from "../src/blockie.js";
 
 // Resolved from this file rather than the cwd, so the check behaves the same
 // whether npm runs it from the root or someone runs it from tools/.
@@ -203,6 +204,45 @@ console.log("\ndraws");
   empty.push([7], { t: 1n, lat: 0, lon: 0 });
   await new Promise((r) => setTimeout(r, 10));
   check(settled, "and resolves once a strike arrives");
+}
+
+// ── blockie ──────────────────────────────────────────────────────────────────
+console.log("\nblockie");
+{
+  const r = createReader();
+  r.push(Array.from({ length: 200 }, (_, i) => (i * 53) % 256), { t: 5n, lat: 1, lon: 2 });
+  const tile = await blockie(r);
+
+  check(tile.cells.length === 8 && tile.cells.every((row) => row.length === 8), "the tile is 8x8");
+  check(
+    tile.cells.every((row) => row.slice(0, 4).join("") === [...row.slice(4)].reverse().join("")),
+    "every row mirrors about the centre"
+  );
+  check(
+    tile.cells.flat().every((v) => v === 0 || v === 1 || v === 2),
+    "cells are only background, primary or spot"
+  );
+  check(
+    ["background", "primary", "spot"].every(
+      (k) => tile.colours[k].length === 3 && tile.colours[k].every((c) => c >= 0 && c <= 255)
+    ),
+    "three colours, each a valid rgb triple"
+  );
+
+  // The weighting is the thing most likely to drift, and the original's
+  // `floor(r * 2.3)` is 10/23, 10/23, 3/23. Over many tiles the spot colour
+  // should be the rare one, at roughly an eighth of cells.
+  const many = createReader();
+  many.push(Array.from({ length: 20000 }, (_, i) => (i * 101) % 256), { t: 1n, lat: 0, lon: 0 });
+  const counts = [0, 0, 0];
+  for (let i = 0; i < 60; i++) {
+    const t = await blockie(many);
+    // Left half only: the mirror would double-count.
+    for (const row of t.cells) for (const v of row.slice(0, 4)) counts[v]++;
+  }
+  const total = counts.reduce((a, b) => a + b, 0);
+  const spot = counts[2] / total;
+  check(spot > 0.09 && spot < 0.17, `spot cells are the rare third, ${(spot * 100).toFixed(1)}% (expect ~13%)`);
 }
 
 console.log(failures ? `\n${failures} failed\n` : "\nall passed\n");
