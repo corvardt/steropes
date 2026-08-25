@@ -1,0 +1,339 @@
+/* Entropic — the instrument panel.
+ *
+ * The palette is Keraunos's, unchanged, because these are one series and the
+ * medium is the same: light emitted on black, or ink laid on a chart recorder's
+ * roll. What is transposed is the reserved mark. There, white is a lightning
+ * strike and nothing else in the interface is allowed to reach it. Here, white
+ * is a bit that just arrived from the sky — the walk's head, and nothing else.
+ *
+ * Every colour lives here rather than in the canvas code, so the stylesheet and
+ * the drawing cannot disagree. ui.js reads these back with getComputedStyle.
+ */
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/public/fonts/ibm-plex-mono-400-latin.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/public/fonts/ibm-plex-mono-600-latin.woff2") format("woff2");
+}
+
+/* ── Tube ─────────────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: dark;
+
+  --c-void: #0a0a0b;
+  --c-panel: #0f0f11;
+  --c-line: #26262b;
+  --c-dim: #7b7b81;
+  --c-text: #c8c8cc;
+  --c-hot: #ffffff;
+
+  /* The walk's settled history. Deliberately NOT --c-line: furniture may sit at
+     the threshold of visibility, but the walk is the subject of the page and the
+     first draft drew it at about 1.2:1 against the void, which made the one
+     thing worth looking at the hardest thing to see. */
+  --walk-tail: #3d3d46;
+
+  /* The only colour on the page, and it means one thing: this test is failing.
+     Derived from the series' own P3 amber phosphor ratio [1, .72, .34] applied
+     to the text grey, rather than picked by eye. */
+  --c-fail: #c8905b;
+
+  --bloom: rgba(255, 255, 255, 0.14);
+  --grid: rgba(255, 255, 255, 0.022);
+
+  --gap: 1.5rem;
+}
+
+/* ── Paper ────────────────────────────────────────────────────────────────────
+   A tube cannot simply be inverted, so light mode changes medium instead: ink
+   deposited on cool neutral stock, never cream. Black takes over the hot mark's
+   role. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+
+    --c-void: #dedee0;
+    --c-panel: #e7e7e9;
+    --c-line: #c2c2c6;
+    --c-dim: #626268;
+    --c-text: #2a2a2e;
+    --c-hot: #000000;
+    --walk-tail: #b0b0b8;
+    --c-fail: #8a5417;
+
+    --bloom: rgba(0, 0, 0, 0.16);
+    --grid: rgba(0, 0, 0, 0.02);
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --c-void: #dedee0;
+  --c-panel: #e7e7e9;
+  --c-line: #c2c2c6;
+  --c-dim: #626268;
+  --c-text: #2a2a2e;
+  --c-hot: #000000;
+  --walk-tail: #b0b0b8;
+  --c-fail: #8a5417;
+
+  --bloom: rgba(0, 0, 0, 0.16);
+  --grid: rgba(0, 0, 0, 0.02);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--c-void);
+  color: var(--c-text);
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  /* Digits must not jitter as readouts tick. */
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 1px solid var(--c-text);
+  outline-offset: 2px;
+}
+
+/* ── Frame ────────────────────────────────────────────────────────────────── */
+.panel {
+  display: grid;
+  grid-template-columns: 1fr 22rem;
+  height: 100%;
+}
+
+.stage {
+  position: relative;
+  /* A faint rule grid behind the walk: this is a plotter's paper, and it gives
+     the eye a scale to read the walk's rescaling against. */
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+#walk {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* The state of the link, over the stage rather than in the readouts: when there
+   is nothing coming, the empty canvas is the thing that needs explaining. */
+.state {
+  position: absolute;
+  inset: auto auto var(--gap) var(--gap);
+  color: var(--c-dim);
+  letter-spacing: 0.08em;
+}
+
+.state[data-phase="live"] {
+  color: var(--c-line);
+}
+
+.readouts {
+  border-left: 1px solid var(--c-line);
+  background: var(--c-panel);
+  padding: var(--gap);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  overflow-y: auto;
+}
+
+/* ── Masthead ─────────────────────────────────────────────────────────────── */
+.mast h1 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+.mast p {
+  margin: 0.5rem 0 0;
+  color: var(--c-dim);
+  max-width: 30ch;
+}
+
+/* ── Readout blocks ───────────────────────────────────────────────────────── */
+.block {
+  border-top: 1px solid var(--c-line);
+  padding-top: 0.75rem;
+}
+
+.label {
+  color: var(--c-dim);
+  letter-spacing: 0.14em;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* The one large figure on the page. Bits, because bits are what this makes. */
+.figure {
+  font-size: 2.75rem;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--c-text);
+  margin-top: 0.25rem;
+}
+
+.figure small {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--c-dim);
+  letter-spacing: 0.14em;
+  margin-left: 0.5rem;
+}
+
+/* Pool gauge: a bar of the pool's own bytes, not a percentage of an abstraction. */
+.gauge {
+  height: 3px;
+  background: var(--c-line);
+  margin-top: 0.75rem;
+}
+
+.gauge span {
+  display: block;
+  height: 100%;
+  background: var(--c-text);
+  width: 0;
+}
+
+.rows {
+  margin-top: 0.5rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.row b {
+  font-weight: 400;
+  color: var(--c-text);
+}
+
+.row span {
+  color: var(--c-dim);
+}
+
+/* ── Test badges ──────────────────────────────────────────────────────────── */
+.test {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3rem 0;
+}
+
+.test .name {
+  color: var(--c-text);
+}
+
+.test .p {
+  color: var(--c-dim);
+  font-size: 11px;
+}
+
+.spark {
+  display: block;
+  width: 56px;
+  height: 12px;
+  overflow: visible;
+}
+
+.spark polyline {
+  fill: none;
+  stroke: var(--c-line);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.test[data-verdict="pass"] .spark polyline {
+  stroke: var(--c-dim);
+}
+
+/* Colour appears here and nowhere else on the page. */
+.test[data-verdict="fail"] .name,
+.test[data-verdict="fail"] .p {
+  color: var(--c-fail);
+}
+
+.test[data-verdict="fail"] .spark polyline {
+  stroke: var(--c-fail);
+}
+
+.test[data-verdict="waiting"] .name {
+  color: var(--c-dim);
+}
+
+/* ── The raw stream ───────────────────────────────────────────────────────── */
+.stream {
+  color: var(--c-dim);
+  word-break: break-all;
+  line-height: 1.6;
+  min-height: 3.2em;
+}
+
+.stream b {
+  color: var(--c-hot);
+  font-weight: 400;
+}
+
+footer {
+  margin-top: auto;
+  padding-top: var(--gap);
+  border-top: 1px solid var(--c-line);
+  color: var(--c-dim);
+}
+
+footer a {
+  color: var(--c-dim);
+}
+
+footer a:hover {
+  color: var(--c-text);
+}
+
+/* ── Narrow ───────────────────────────────────────────────────────────────── */
+@media (max-width: 60rem) {
+  .panel {
+    grid-template-columns: 1fr;
+    grid-template-rows: 60vh 1fr;
+    height: auto;
+    min-height: 100%;
+  }
+
+  .readouts {
+    border-left: 0;
+    border-top: 1px solid var(--c-line);
+  }
+}
