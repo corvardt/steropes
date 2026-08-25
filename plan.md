@@ -57,7 +57,10 @@ Two bits per step, four directions, eight steps per strike. The view is derived 
 Badge hysteresis implemented as planned above: three consecutive failures to turn a badge over, recovery on the first pass.
 Colour discipline: white (or black on paper) is reserved for the newest bit, exactly as Keraunos reserves it for a strike. The single amber appears nowhere except a failed test, so colour on this page always means the same thing.
 Fonts are copied from Keraunos rather than re-picked, same series, same face.
-Draw-from-the-sky interactions + provenance (half a day)
+DONE, draw-from-the-sky interactions and provenance, in src/draw.js and src/art.js.
+Fresh bits are structural, not a promise: the byte reader is created when the button is pressed, so it cannot be holding anything the pool already had. Verified in the browser, uuid needs 16 bytes and cited 8 strikes, the artwork needs 32 and cited 16, which is two bytes per strike exactly.
+Integers use rejection sampling, never a modulus. With n=6 a modulus gives residues 0 and 1 an extra count each out of 256, a 2.4% loaded die that no casual inspection would catch. The check asserts exactly 42 of each face over one byte cycle and prints what the modulus would have done.
+The artwork is a walk from its own 256 bits, the same form the hero draws, with the seed printed under it in full. The caption is the entire input, so the plate can be redrawn from it and checked.
 Polish, empty-state (low storm activity) handling, About/methodology section (half a day)
 Key risk, now resolved and worth keeping as the record: the low bits of a solved fix time are NOT random. The risk fired exactly as written. Testing at step 1 caught it before anything was built on it, and the source moved to lat/lon. Had the tests come after the pool and the UI, the instrument would have shipped confidently emitting biased bits with four green badges above them, the small 222-strike sample did pass the timestamp on three of four tests, and only at 1,786 did it fail. Sample size was the difference between catching this and not.
 Second risk: low global strike rate at certain hours → slow bit accumulation. Mitigation: show "harvesting…" state honestly and queue draws, waiting for the sky is part of the charm.

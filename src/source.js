@@ -85,8 +85,10 @@ const MAX_RECONNECT_MS = 30000;
 
 /**
  * Holds the socket and pushes accepted bytes out. `onBytes` gets two bytes per
- * usable strike; `onFrame` sees every frame including the rejected ones, which
- * is what the strikes/s pulse and the accept-rate readout are drawn from.
+ * usable strike, together with the strike they came from, so a draw can say
+ * which strikes produced it. `onFrame` sees every frame including the rejected
+ * ones, which is what the strikes/s pulse and the accept-rate readout are drawn
+ * from.
  */
 export function createSource({ url, onBytes, onFrame, onStatus, hello = null }) {
   const accept = createFilter();
@@ -118,7 +120,7 @@ export function createSource({ url, onBytes, onFrame, onStatus, hello = null }) 
       if (!frame) return;
       const bytes = accept(frame);
       onFrame?.(frame, bytes !== null);
-      if (bytes) onBytes?.(bytes);
+      if (bytes) onBytes?.(bytes, frame);
     };
 
     // An errored socket also emits close, so the reconnect is scheduled from

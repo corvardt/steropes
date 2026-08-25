@@ -12,6 +12,7 @@ import { readFileSync } from "node:fs";
 import { runAll, controlGood, controlRigged, seeded, MIN_BITS } from "../src/tests.js";
 import { createFilter, lowByte, parseFrame, SPACING_NS } from "../src/source.js";
 import { createPool, toBits, condition } from "../src/pool.js";
+import { createReader, below, between, shuffle, uuid, DECK } from "../src/draw.js";
 
 // Resolved from this file rather than the cwd, so the check behaves the same
 // whether npm runs it from the root or someone runs it from tools/.
@@ -125,6 +126,83 @@ console.log("\nconditioning");
   check(out.length === 32, "SHA-256 block extraction gives 32 bytes from 64");
   const again = await condition(Uint8Array.from({ length: 64 }, (_, i) => i));
   check([...out].join() === [...again].join(), "and is deterministic");
+}
+
+// ── draws ────────────────────────────────────────────────────────────────────
+console.log("\ndraws");
+{
+  const feed = (bytes, frame = null) => {
+    const r = createReader();
+    r.push(bytes, frame);
+    return r;
+  };
+
+  // The important one. Every byte value 0..255 goes in exactly once; with n=6
+  // the last whole multiple of 6 is 252, so 252 bytes are accepted and four are
+  // rejected, and every face must come up exactly 42 times. `byte % 6` would
+  // give 0 and 1 an extra count each, which is a 2.4% loaded die that no casual
+  // inspection would ever catch.
+  const r = feed(Array.from({ length: 256 }, (_, i) => i));
+  const counts = new Array(6).fill(0);
+  for (let i = 0; i < 252; i++) counts[await below(r, 6)]++;
+  check(counts.every((c) => c === 42), `d6 is exactly uniform over one byte cycle: ${counts.join(" ")}`);
+  // 252 accepted draws consumed exactly 252 bytes. The four values at or above
+  // the last whole multiple are still queued, because a value is only rejected
+  // when a draw actually reads it. Asking for one more must eat all four and
+  // then wait, rather than folding them back into the range.
+  check(r.waiting === 4, `the four rejectable values are still queued (${r.waiting})`);
+  let extra = false;
+  below(r, 6).then(() => (extra = true));
+  await new Promise((res) => setTimeout(res, 10));
+  check(!extra && r.waiting === 0, "a further draw rejects all four and waits for a fresh strike");
+
+  // A modulus would have produced this instead, which is what we are avoiding.
+  const naive = new Array(6).fill(0);
+  for (let i = 0; i < 256; i++) naive[i % 6]++;
+  check(!naive.every((c) => c === naive[0]), `modulo would have been biased: ${naive.join(" ")}`);
+
+  const q = feed(Array.from({ length: 4000 }, (_, i) => (i * 37) % 256));
+  let inRange = true;
+  for (let i = 0; i < 500; i++) {
+    const v = await below(q, 20);
+    if (v < 0 || v > 19) inRange = false;
+  }
+  check(inRange, "d20 stays inside 1..20");
+  check((await between(feed([0]), 5, 5)) === 5, "a range of one needs no bytes and returns it");
+  check((await between(feed([0, 0, 0, 0]), 9, 3)) >= 3, "an inverted range is accepted, not thrown");
+
+  await assert.rejects(() => below(feed([1]), 0), RangeError);
+  check(true, "below() refuses a range of zero");
+
+  const shuffled = await shuffle(feed(Array.from({ length: 4000 }, (_, i) => (i * 91) % 256)), DECK);
+  check(shuffled.length === 52, "the deck keeps all 52 cards");
+  check(new Set(shuffled).size === 52, "with no duplicates and none lost");
+  check(shuffled.join(" ") !== DECK.join(" "), "and is not in the order it started");
+
+  const id = await uuid(feed(Array.from({ length: 16 }, () => 0xff)));
+  check(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id), `uuid v4 shape: ${id}`);
+
+  // Provenance has to name the strikes that actually decided it.
+  const p = createReader();
+  p.push([1, 2], { t: 100n, lat: 1, lon: 2 });
+  p.push([3, 4], { t: 200n, lat: 3, lon: 4 });
+  await p.byte();
+  check(p.provenance().strikes === 1, "one strike cited after one byte");
+  await p.byte();
+  await p.byte();
+  const prov = p.provenance();
+  check(prov.strikes === 2, "two after crossing into the second strike");
+  check(prov.from === 100n && prov.to === 200n, "and reports the span, oldest to newest");
+
+  // A draw must wait rather than be answered from thin air.
+  const empty = createReader();
+  let settled = false;
+  below(empty, 6).then(() => (settled = true));
+  await new Promise((r) => setTimeout(r, 10));
+  check(!settled, "a draw with no strikes yet does not resolve");
+  empty.push([7], { t: 1n, lat: 0, lon: 0 });
+  await new Promise((r) => setTimeout(r, 10));
+  check(settled, "and resolves once a strike arrives");
 }
 
 console.log(failures ? `\n${failures} failed\n` : "\nall passed\n");

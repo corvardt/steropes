@@ -8,6 +8,8 @@
 import { createSource } from "./source.js";
 import { createPool, toBits } from "./pool.js";
 import { runAll, MIN_BITS, CHI2_MIN_BYTES } from "./tests.js";
+import { createReader, DRAWS, rangeDraw } from "./draw.js";
+import { plate, download } from "./art.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -231,6 +233,135 @@ function badges() {
     .join("");
 }
 
+// ── draws ────────────────────────────────────────────────────────────────────
+
+// One draw at a time, and its reader is created when the button is pressed. That
+// is what makes "fresh bits" structural rather than a promise: a reader that did
+// not exist a moment ago cannot be holding anything the pool already had.
+let draw = null;
+
+const card = $("card");
+const out = $("draw-out");
+const buttons = () => document.querySelectorAll(".bar button, .bar input");
+
+const clock = (t) => new Date(Number(t / 1000000n)).toISOString().slice(11, 19);
+
+function closeCard() {
+  card.hidden = true;
+}
+
+/** The wait, reported rather than hidden. It is the instrument doing the one
+ *  thing that makes its output worth having, so it says what it is waiting for
+ *  and roughly how long that should take at the rate the sky is running. */
+function waiting() {
+  if (!draw) return;
+  const have = draw.reader.provenance().strikes;
+  const need = draw.spec.strikes ?? 1;
+  const perSec = recent.length / 30;
+  const left = Math.max(0, need - have);
+  const eta = perSec > 0.1 && left ? `, about ${Math.ceil(left / perSec)}s at this rate` : "";
+  const done = have >= need;
+
+  out.innerHTML = `
+    <p class="waiting">waiting for the sky
+      <small>${have} of ~${need} strike${need > 1 ? "s" : ""}${done ? ", a little longer" : eta}</small>
+    </p>
+    <div class="track"${done ? " data-indeterminate" : ""}>
+      <span style="width:${Math.min(100, (have / need) * 100).toFixed(0)}%"></span>
+    </div>`;
+}
+
+function action(label, fn) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.textContent = label;
+  b.onclick = fn;
+  return b;
+}
+
+function present(spec, value, prov, again) {
+  out.innerHTML = "";
+  const actions = document.createElement("div");
+  actions.className = "actions";
+
+  if (spec.kind === "art") {
+    const { canvas, hex } = plate(value, prov, ink);
+    canvas.className = "plate";
+    out.append(canvas);
+    actions.append(action("save the plate", () => download(canvas, `entropic-${hex.slice(0, 8)}.png`)));
+    actions.append(action("copy the seed", () => navigator.clipboard?.writeText(hex)));
+  } else if (spec.kind === "deck") {
+    const ul = document.createElement("ul");
+    ul.className = "deck";
+    for (const c of value) {
+      const li = document.createElement("li");
+      li.textContent = c;
+      ul.append(li);
+    }
+    out.append(ul);
+    actions.append(action("copy", () => navigator.clipboard?.writeText(value.join(" "))));
+  } else {
+    const p = document.createElement("p");
+    p.className = spec.kind === "mono" ? "result mono" : "result";
+    p.textContent = value;
+    out.append(p);
+    actions.append(action("copy", () => navigator.clipboard?.writeText(value)));
+  }
+
+  actions.append(action("draw again", again));
+  out.append(actions);
+
+  const note = document.createElement("p");
+  note.className = "prov";
+  note.textContent = prov.from
+    ? `${prov.strikes} strike${prov.strikes > 1 ? "s" : ""} consumed, ${clock(prov.from)} to ${clock(prov.to)} UTC`
+    : "no strikes consumed";
+  out.append(note);
+}
+
+async function begin(spec) {
+  if (draw) return;
+  draw = { reader: createReader(), spec };
+
+  card.hidden = false;
+  $("draw-label").textContent = spec.label;
+  for (const b of buttons()) b.disabled = true;
+  waiting();
+
+  const value = await spec.run(draw.reader);
+  const prov = draw.reader.provenance();
+  draw = null;
+  for (const b of buttons()) b.disabled = false;
+
+  present(spec, value, prov, () => begin(spec));
+  $("card-close").focus();
+}
+
+// Built from the DRAWS table rather than written out, so a new draw is one entry
+// in draw.js and nothing here.
+$("draw-buttons").innerHTML = Object.keys(DRAWS)
+  .map((k) => `<button type="button" data-draw="${k}">${DRAWS[k].label}</button>`)
+  .join("");
+$("draw-buttons").addEventListener("click", (e) => {
+  const kind = e.target.closest("button")?.dataset.draw;
+  if (kind) begin(DRAWS[kind]);
+});
+
+$("range-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const min = Math.trunc(Number($("range-min").value));
+  const max = Math.trunc(Number($("range-max").value));
+  // A range this wide would need five bytes per attempt and means nothing anyone
+  // asked for, so it is refused at the edge rather than deep inside below().
+  if (!Number.isFinite(min) || !Number.isFinite(max) || Math.abs(max - min) + 1 > 2 ** 32) return;
+  begin(rangeDraw(min, max));
+});
+
+$("card-close").addEventListener("click", closeCard);
+addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !card.hidden && !draw) closeCard();
+});
+
 // ── run ──────────────────────────────────────────────────────────────────────
 
 const state = $("state");
@@ -259,9 +390,12 @@ if (!FEED) {
         recent.push(Date.now());
       }
     },
-    onBytes: (bytes) => {
+    onBytes: (bytes, frame) => {
       pool.push(bytes);
       walk(bytes);
+      // Only ever reaches a draw that is already waiting.
+      draw?.reader.push(bytes, frame);
+      waiting();
     },
   });
 }

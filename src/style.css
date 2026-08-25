@@ -245,6 +245,228 @@ body {
   color: var(--c-dim);
 }
 
+/* ── Draws ────────────────────────────────────────────────────────────────────
+   The one part of the page that takes input, so the one part with a pressable
+   edge. It sits on the stage rather than in the readouts column: a deck of
+   fifty-two cards and a printed plate need the room, and asking the sky a
+   question is the thing this page is for, not a sidebar accessory. */
+.bar {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+  padding: var(--gap);
+  /* Reads over the walk without hiding it. */
+  background: linear-gradient(transparent, var(--c-void) 55%);
+}
+
+.bar-draws {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.bar button,
+.card button {
+  font: inherit;
+  color: var(--c-text);
+  background: var(--c-panel);
+  border: 1px solid var(--c-line);
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+}
+
+.bar button:hover:not(:disabled),
+.card button:hover:not(:disabled) {
+  border-color: var(--c-dim);
+}
+
+.bar button:disabled {
+  color: var(--c-line);
+  cursor: default;
+}
+
+.bar-range {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bar-range label {
+  color: var(--c-dim);
+  letter-spacing: 0.14em;
+}
+
+.bar-range input {
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  width: 5rem;
+  color: var(--c-text);
+  background: var(--c-panel);
+  border: 1px solid var(--c-line);
+  padding: 0.4rem 0.5rem;
+}
+
+.bar-range input:focus-visible {
+  border-color: var(--c-dim);
+}
+
+/* ── The answer ───────────────────────────────────────────────────────────── */
+.card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(46rem, calc(100% - 3rem));
+  max-height: calc(100% - 9rem);
+  overflow-y: auto;
+  background: var(--c-panel);
+  border: 1px solid var(--c-line);
+  padding: 1.25rem;
+}
+
+.card[hidden] {
+  display: none;
+}
+
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.card-label {
+  color: var(--c-dim);
+  letter-spacing: 0.14em;
+}
+
+.card-head button {
+  padding: 0.2rem 0.5rem;
+  color: var(--c-dim);
+}
+
+/* The answer itself. Large, because it is what was asked for. */
+.result {
+  font-size: clamp(2.5rem, 7vw, 4rem);
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--c-hot);
+  margin: 0.75rem 0 0;
+  word-break: break-word;
+}
+
+/* A uuid is read across, not admired. */
+.result.mono {
+  font-size: clamp(0.95rem, 2.4vw, 1.5rem);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* Fifty-two cards want to be countable at a glance. */
+.deck {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(3.25rem, 1fr));
+  gap: 0.25rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.deck li {
+  border: 1px solid var(--c-line);
+  padding: 0.4rem 0;
+  text-align: center;
+  color: var(--c-text);
+  font-size: 14px;
+}
+
+/* The first card off the top is the one people care about. */
+.deck li:first-child {
+  color: var(--c-hot);
+  border-color: var(--c-dim);
+}
+
+/* Bounded by height, not width. The plate is portrait, and at full width it
+   pushed "save the plate" below the fold, which hid the one action the draw
+   exists to offer. */
+.plate {
+  display: block;
+  max-height: 54vh;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  margin: 0.75rem auto 0;
+  border: 1px solid var(--c-line);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.875rem;
+}
+
+.prov {
+  color: var(--c-dim);
+  margin: 0.875rem 0 0;
+}
+
+/* ── Waiting ──────────────────────────────────────────────────────────────────
+   The wait is not dead time, it is the instrument doing the one thing that
+   makes its output worth anything, so it is reported rather than hidden behind
+   a spinner. */
+.waiting {
+  color: var(--c-text);
+  margin: 0.75rem 0 0;
+  font-size: 1.25rem;
+}
+
+.waiting small {
+  display: block;
+  font-size: 12px;
+  color: var(--c-dim);
+  margin-top: 0.375rem;
+  letter-spacing: 0.08em;
+}
+
+.track {
+  height: 2px;
+  background: var(--c-line);
+  margin-top: 0.875rem;
+  overflow: hidden;
+}
+
+.track span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--c-text);
+  transition: width 0.3s linear;
+}
+
+/* Without a known target there is nothing honest to fill, so it paces instead
+   of pretending to measure. */
+.track[data-indeterminate] span {
+  width: 30%;
+  animation: pace 1.6s ease-in-out infinite;
+}
+
+@keyframes pace {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(333%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track[data-indeterminate] span {
+    animation: none;
+    width: 100%;
+    opacity: 0.35;
+  }
+}
+
 /* ── Test badges ──────────────────────────────────────────────────────────── */
 .test {
   display: grid;

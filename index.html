@@ -20,6 +20,26 @@
       <section class="stage">
         <canvas id="walk"></canvas>
         <p class="state" id="state" data-phase="connecting">connecting</p>
+
+        <!-- The answer arrives over the sky it came from. -->
+        <div class="card" id="card" hidden aria-live="polite">
+          <div class="card-head">
+            <span class="card-label" id="draw-label"></span>
+            <button type="button" id="card-close" aria-label="Close">close</button>
+          </div>
+          <div id="draw-out"></div>
+        </div>
+
+        <div class="bar">
+          <div class="bar-draws" id="draw-buttons"></div>
+          <form class="bar-range" id="range-form">
+            <label for="range-min">from</label>
+            <input id="range-min" type="number" value="1" step="1" inputmode="numeric" />
+            <label for="range-max">to</label>
+            <input id="range-max" type="number" value="100" step="1" inputmode="numeric" />
+            <button type="submit">draw</button>
+          </form>
+        </div>
       </section>
 
       <aside class="readouts">
