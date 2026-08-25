@@ -1,0 +1,11 @@
+node_modules/
+
+# Raw harvests: regenerable by re-running harvest.cjs, and bulky. dd.jsonl is
+# deliberately NOT ignored — it is the deduplicated sample every figure in
+# plan.md was measured against, and analyse.cjs should stay runnable against it.
+times.jsonl
+long.jsonl
+big.jsonl
+all.jsonl
+deduped.jsonl
+*.log
