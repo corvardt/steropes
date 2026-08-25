@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Entropic — random numbers drawn from the sky</title>
+    <meta
+      name="description"
+      content="True random numbers harvested from lightning, verified live in the browser."
+    />
+    <!-- The walk itself: a lattice staircase, which is the shape the page draws. -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 14h3v-3h3V8h3V5h3' fill='none' stroke='%23fff' stroke-width='1.5'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main class="panel">
+      <section class="stage">
+        <canvas id="walk"></canvas>
+        <p class="state" id="state" data-phase="connecting">connecting</p>
+      </section>
+
+      <aside class="readouts">
+        <header class="mast">
+          <h1>Entropic</h1>
+          <p>
+            Random numbers drawn from lightning. Every step of the walk is one
+            strike, somewhere on earth.
+          </p>
+        </header>
+
+        <div class="block">
+          <div class="label"><span>pool</span><span id="pool-pct">0%</span></div>
+          <div class="figure"><span id="bits">0</span><small>bits held</small></div>
+          <div class="gauge"><span id="gauge"></span></div>
+        </div>
+
+        <div class="block">
+          <div class="label"><span>the sky</span><span id="rate">—</span></div>
+          <div class="rows">
+            <div class="row"><span>frames seen</span><b id="seen">0</b></div>
+            <div class="row"><span>strikes used</span><b id="kept">0</b></div>
+            <div class="row"><span>accepted</span><b id="accept">—</b></div>
+          </div>
+        </div>
+
+        <div class="block">
+          <div class="label"><span>verification</span><span id="tested">—</span></div>
+          <div id="tests"></div>
+        </div>
+
+        <div class="block">
+          <div class="label"><span>raw stream</span><span>newest first</span></div>
+          <p class="stream" id="stream"></p>
+        </div>
+
+        <footer>
+          <p>
+            Strikes from the
+            <a href="https://www.blitzortung.org/" rel="noreferrer">Blitzortung</a>
+            network, by way of
+            <a href="https://keraunos.corvardt.com" rel="noreferrer">Keraunos</a>.
+            The same sky, counted.
+          </p>
+          <p>
+            These bits are unpredictable, not secret: the stream is public and
+            everyone watching sees the same strikes. Not for keys.
+          </p>
+        </footer>
+      </aside>
+    </main>
+
+    <script type="module" src="/src/ui.js"></script>
+  </body>
+</html>
