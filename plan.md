@@ -30,6 +30,8 @@ Monobit frequency test (0/1 balance)
 Runs test (streak lengths vs expectation)
 Serial / autocorrelation test
 Chi² on byte distribution — two-sided. This matters more than it sounds: run against a plain counter, this suite as originally specified passed it on monobit, runs AND chi², scoring X2=3 with p=1.0000, because a counter emits every byte value exactly once and so looks like the most uniform stream ever measured. Only serial correlation caught it. Too flat must fail exactly as too lumpy does.
+Correct the serial test across its lags. Reporting the smallest of eight lag p-values raw tests eight hypotheses and quotes the luckiest, so a clean stream trips it ~8% of the time against a threshold claiming 1%. Bonferroni applied in tests.js.
+Even corrected, the four tests together throw a false failure on about 4% of evaluations — that is what a 0.01 threshold means, not a bug. A live badge re-evaluating continuously will therefore go red on good data several times an hour. Two things follow: the badges need hysteresis or a sustained-failure rule rather than flipping on a single evaluation, and the About section should say plainly that an occasional red badge is expected and only persistent failure means anything. Getting this wrong teaches the visitor the opposite of the lesson the page exists to give.
 Each shown as a pass/fail badge with p-value and a small sparkline. Include a shuffled-surrogate comparison so users see what "passing" looks like vs a rigged stream — the counter above is the surrogate to use, and the fact that it beats three of four tests is the demonstration.
 Keep a known-good control (Math.random) beside the known-bad one. A suite that cannot separate those two says nothing about lightning either; both controls are already in analyse.cjs.
 4. Visuals
@@ -47,7 +49,8 @@ Vanilla JS or lightweight framework + Canvas/WebGL for the walk; no backend need
 ~3 modules: source.js (WS + bit extraction), pool.js (debias + tests), ui.js (render + draws).
 7. Build order
 DONE — WS ingest + bit extraction + the test suite, in harvest.cjs and analyse.cjs. Both live in this repo and are the reference implementation for source.js and pool.js: the extraction, the dedup rule and the four tests are settled and measured. analyse.cjs carries both controls and should stay the gate whenever the source changes.
-Debiasing + entropy pool + tests (1 day)
+DONE — conditioning + entropy pool + tests, in src/tests.js, src/source.js, src/pool.js. `npm test` (check.mjs) runs the suite against the committed fixture and both controls; `npm run smoke` drives the real modules against the live feed. Measured end to end: 48.5% of frames accepted, matching the 48% predicted from the batch analysis, 4.4 usable strikes/s at a busy hour.
+Von Neumann debiasing skipped: SHA-256 block extraction yields 50% against its ~25%, and at these rates yield is the binding constraint. Recorded as a ponytail note in pool.js. Add it beside the extractor only if the page wants to show the classical method for its own sake.
 Random-walk hero visual + gauges (1 day)
 Draw-from-the-sky interactions + provenance (half a day)
 Polish, empty-state (low storm activity) handling, About/methodology section (half a day)

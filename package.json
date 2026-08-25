@@ -1,0 +1,11 @@
+{
+  "name": "entropic",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node check.mjs",
+    "smoke": "node smoke.mjs",
+    "harvest": "NODE_PATH=../Keraunos/node_modules node harvest.cjs"
+  }
+}
