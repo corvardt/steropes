@@ -4,8 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "test": "node check.mjs",
-    "smoke": "node smoke.mjs",
-    "harvest": "NODE_PATH=../Keraunos/node_modules node harvest.cjs"
+    "test": "node tools/check.mjs",
+    "smoke": "node tools/smoke.mjs",
+    "harvest": "node tools/harvest.mjs",
+    "analyse": "node tools/analyse.mjs",
+    "dev": "python3 -m http.server 8080"
   }
 }

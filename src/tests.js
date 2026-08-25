@@ -1,7 +1,7 @@
 // The four randomness tests, and the only implementation of them.
 //
-// These run in two places — live in the page against the pool, and offline in
-// check.mjs against the committed fixture — and the one thing that must never
+// These run in two places, live in the page against the pool, and offline in
+// check.mjs against the committed fixture, and the one thing that must never
 // happen is the two drifting apart. A page that grades itself with a different
 // monobit than the one the fixture was verified with is grading itself with
 // something nobody checked.
@@ -89,14 +89,14 @@ export function chi2Bytes(bits) {
 export const LAGS = 8;
 
 // Correlation at lag 1..8. A source with a periodic artefact shows up here as a
-// spike at its period while the other three see nothing — this is the test that
+// spike at its period while the other three see nothing, this is the test that
 // caught both the duplicate frames and the counter control.
 //
 // The reported p is Bonferroni-corrected across the eight lags. Taking the
 // smallest of eight p-values and reporting it raw tests eight hypotheses and
 // quotes the luckiest, so a clean stream trips it about 8% of the time rather
 // than the 1% the threshold claims. On a live badge that is a red light several
-// times an hour on data that is fine — which would teach the visitor exactly the
+// times an hour on data that is fine, which would teach the visitor exactly the
 // wrong lesson about what a failing test means.
 export function serial(bits) {
   let worst = { lag: 0, p: 1 };
@@ -112,7 +112,7 @@ export function serial(bits) {
   }
   return {
     p: Math.min(1, worst.p * LAGS),
-    detail: `worst lag ${worst.lag} (x${LAGS} corrected) — ${detail.join(" ")}`,
+    detail: `worst lag ${worst.lag} (x${LAGS} corrected), ${detail.join(" ")}`,
   };
 }
 
@@ -149,7 +149,7 @@ export function controlGood(n = 40000, rand = Math.random) {
   return bits;
 }
 
-/** mulberry32 — a seeded PRNG, only so the controls are reproducible. */
+/** mulberry32, a seeded PRNG, only so the controls are reproducible. */
 export function seeded(a) {
   return () => {
     a |= 0;

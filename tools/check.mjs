@@ -8,9 +8,14 @@
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { runAll, controlGood, controlRigged, seeded, MIN_BITS } from "./src/tests.js";
-import { createFilter, lowByte, parseFrame, SPACING_NS } from "./src/source.js";
-import { createPool, toBits, condition } from "./src/pool.js";
+
+import { runAll, controlGood, controlRigged, seeded, MIN_BITS } from "../src/tests.js";
+import { createFilter, lowByte, parseFrame, SPACING_NS } from "../src/source.js";
+import { createPool, toBits, condition } from "../src/pool.js";
+
+// Resolved from this file rather than the cwd, so the check behaves the same
+// whether npm runs it from the root or someone runs it from tools/.
+const FIXTURE = new URL("../fixtures/strikes.jsonl", import.meta.url);
 
 let failures = 0;
 const check = (pass, what) => {
@@ -25,7 +30,7 @@ console.log("\ncontrols");
   const good = verdicts(controlGood(40000, seeded(20260825)));
   check(
     Object.values(good).every((v) => v === "pass"),
-    `seeded PRNG passes all four — ${JSON.stringify(good)}`
+    `seeded PRNG passes all four, ${JSON.stringify(good)}`
   );
 
   // The counter is the whole reason chi2 is two-sided. It passes monobit and
@@ -36,9 +41,9 @@ console.log("\ncontrols");
 }
 
 // ── the fixture must still pass ──────────────────────────────────────────────
-console.log("\nfixture (dd.jsonl, the sample plan.md was measured against)");
+console.log("\nfixture (fixtures/strikes.jsonl, the sample plan.md was measured against)");
 {
-  const rows = readFileSync("dd.jsonl", "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  const rows = readFileSync(FIXTURE, "utf8").trim().split("\n").map((l) => JSON.parse(l));
   check(rows.length > 3000, `${rows.length} strikes`);
 
   const bytes = [];
@@ -46,14 +51,14 @@ console.log("\nfixture (dd.jsonl, the sample plan.md was measured against)");
   const v = verdicts(toBits(Uint8Array.from(bytes)));
   check(
     Object.values(v).every((x) => x === "pass"),
-    `lat+lon low bytes pass all four — ${JSON.stringify(v)}`
+    `lat+lon low bytes pass all four, ${JSON.stringify(v)}`
   );
 
   // And the timestamp must still fail, or the thing this project learned has
   // quietly stopped being true.
   const tb = rows.map((r) => Number((BigInt(r.t) / 100n) & 0xffn));
   const tv = verdicts(toBits(Uint8Array.from(tb)));
-  check(tv.monobit === "fail" || tv["chi2/byte"] === "fail", `timestamp still fails — ${JSON.stringify(tv)}`);
+  check(tv.monobit === "fail" || tv["chi2/byte"] === "fail", `timestamp still fails, ${JSON.stringify(tv)}`);
 }
 
 // ── extraction ───────────────────────────────────────────────────────────────
@@ -86,7 +91,7 @@ console.log("\nfilter");
   // Out-of-order arrivals are real: `delay` runs to twelve seconds.
   check(at(base - 1n) === null, "a late frame near an accepted one is dropped");
 
-  const rows = readFileSync("dd.jsonl", "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  const rows = readFileSync(FIXTURE, "utf8").trim().split("\n").map((l) => JSON.parse(l));
   const fresh = createFilter();
   const kept = rows.filter((r) => fresh({ t: BigInt(r.t), lat: r.lat, lon: r.lon }) !== null);
   check(kept.length / rows.length > 0.95, `already-deduped fixture passes through (${kept.length}/${rows.length})`);

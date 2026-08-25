@@ -3,7 +3,7 @@
 //
 // The pool holds RAW bytes deliberately. Conditioning is applied when bytes are
 // drawn, not when they are stored, so the page can show both streams side by
-// side — which plan §2 calls the content, and it is.
+// side, which plan §2 calls the content, and it is.
 //
 // Worth being straight about what conditioning is for here. The measured stream
 // already passes all four tests unconditioned: deduplicated lat/lon scores
@@ -70,7 +70,7 @@ export const BLOCK_BYTES = 64; // 512 bits in, 256 out
 /**
  * SHA-256 block extraction, the standard construction. 64 bytes in, 32 out.
  *
- * Web Crypto rather than a bundled hash — it is native, it is audited, and it is
+ * Web Crypto rather than a bundled hash, it is native, it is audited, and it is
  * one line. Async because subtle.digest is.
  *
  * ponytail: von Neumann debiasing skipped. It yields ~25% against this
@@ -83,7 +83,7 @@ export async function condition(bytes) {
   return new Uint8Array(digest);
 }
 
-/** Bytes to a flat bit array, MSB first — the shape every test in tests.js takes. */
+/** Bytes to a flat bit array, MSB first, the shape every test in tests.js takes. */
 export function toBits(bytes) {
   const bits = new Array(bytes.length * 8);
   for (let i = 0; i < bytes.length; i++) {

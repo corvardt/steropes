@@ -2,7 +2,7 @@
 //
 // The walk observes the byte stream rather than drawing from the pool. What is
 // on screen is therefore a picture of what arrived, and the pool it fills is
-// untouched by having been looked at — which matters once draws start consuming
+// untouched by having been looked at, which matters once draws start consuming
 // it in step 4.
 
 import { createSource } from "./source.js";
@@ -12,7 +12,7 @@ import { runAll, MIN_BITS, CHI2_MIN_BYTES } from "./tests.js";
 const $ = (id) => document.getElementById(id);
 
 // The relay's hostname is deployment configuration, not something to compile in.
-// Until it is set, `?feed=wss://…` drives the page — which is also how dev points
+// Until it is set, `?feed=wss://…` drives the page, which is also how dev points
 // straight at the upstream, with `&hello` to send the subscription the relay
 // would otherwise send itself.
 const params = new URLSearchParams(location.search);
@@ -20,7 +20,7 @@ const FEED = params.get("feed") ?? "";
 const HELLO = params.has("hello") ? JSON.stringify({ a: 111 }) : null;
 
 // The palette is read back from the stylesheet so the canvas and the CSS cannot
-// disagree — the stylesheet stays the source of truth for both.
+// disagree, the stylesheet stays the source of truth for both.
 const css = getComputedStyle(document.documentElement);
 const ink = (name) => css.getPropertyValue(name).trim();
 
@@ -160,7 +160,7 @@ function readouts() {
   $("pool-pct").textContent = `${Math.round(pct * 100)}%`;
   $("seen").textContent = seen.toLocaleString();
   $("kept").textContent = kept.toLocaleString();
-  $("accept").textContent = seen ? `${Math.round((100 * kept) / seen)}%` : "—";
+  $("accept").textContent = seen ? `${Math.round((100 * kept) / seen)}%` : "·";
 
   const bytes = pool.peek();
   const tailBytes = [...bytes.slice(-40)].reverse();
@@ -177,13 +177,13 @@ function readouts() {
 setInterval(() => {
   const now = Date.now();
   while (recent.length && now - recent[0] > 30000) recent.shift();
-  $("rate").textContent = recent.length ? `${(recent.length / 30).toFixed(1)}/s` : "—";
+  $("rate").textContent = recent.length ? `${(recent.length / 30).toFixed(1)}/s` : "·";
 }, 1000);
 
 // ── badges ───────────────────────────────────────────────────────────────────
 
 // Four tests at p<0.01 throw a false failure on about 4% of evaluations. That is
-// what the threshold means, not a defect — but a badge that flips on a single
+// what the threshold means, not a defect, but a badge that flips on a single
 // evaluation would go red on good data several times an hour and teach exactly
 // the wrong lesson about what a failing test is. So a badge only turns over
 // after three consecutive failures, and recovers on the first pass.
@@ -195,7 +195,7 @@ function badges() {
   const bits = toBits(pool.peek());
   const host = $("tests");
   if (bits.length < MIN_BITS) {
-    host.innerHTML = `<p class="stream">waiting for the sky — ${bits.length} of ${MIN_BITS} bits</p>`;
+    host.innerHTML = `<p class="stream">waiting for the sky, ${bits.length} of ${MIN_BITS} bits</p>`;
     return;
   }
 
@@ -225,7 +225,7 @@ function badges() {
       return `<div class="test" data-verdict="${shown}" title="${r.detail}">
         <span class="name">${r.name}</span>
         <svg class="spark" viewBox="0 0 56 12" aria-hidden="true"><polyline points="${points}" /></svg>
-        <span class="p">${Number.isNaN(r.p) ? "—" : `p=${r.p.toFixed(3)}`}</span>
+        <span class="p">${Number.isNaN(r.p) ? "·" : `p=${r.p.toFixed(3)}`}</span>
       </div>`;
     })
     .join("");
@@ -240,7 +240,7 @@ const say = (phase, text) => {
 };
 
 if (!FEED) {
-  say("down", "no feed configured — append ?feed=wss://…");
+  say("down", "no feed configured: append ?feed=wss://…");
 } else {
   createSource({
     url: FEED,
