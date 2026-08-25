@@ -1,5 +1,5 @@
 // Drive source.js and pool.js against the live feed, in the browser's own code
-// path — node has a global WebSocket, so these modules run here unmodified.
+// path, node has a global WebSocket, so these modules run here unmodified.
 //
 // check.mjs proves the logic against a fixture. This proves the socket, the
 // reconnect, the filter and the pool actually work against the sky. It talks
@@ -8,9 +8,9 @@
 //
 //   node smoke.mjs [seconds]
 
-import { createSource } from "./src/source.js";
-import { createPool, toBits, condition } from "./src/pool.js";
-import { runAll } from "./src/tests.js";
+import { createSource } from "../src/source.js";
+import { createPool, toBits, condition } from "../src/pool.js";
+import { runAll } from "../src/tests.js";
 
 const SECONDS = Number(process.argv[2] ?? 60);
 const HOSTS = ["ws1", "ws7", "ws8"];

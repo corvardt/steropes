@@ -5,7 +5,7 @@
 // against 7,643 live frames: the low byte of lat and of lon each pass all four
 // tests, while the timestamp's 100ns digit is severely biased (X2=383 on df=9,
 // because the solver mixes 1us and 100ns precision) and contaminates any stream
-// it is mixed into. The timestamp is still read — the dedup rule needs it — but
+// it is mixed into. The timestamp is still read, the dedup rule needs it, but
 // none of its bits reach the pool.
 
 export const SPACING_NS = 25600n; // one low-byte cycle
@@ -33,7 +33,7 @@ export function decode(b) {
 }
 
 // `time` is ~1.77e18 and Number.MAX_SAFE_INTEGER is 9.0e15, so JSON.parse
-// silently rounds its low bits away — and the result still looks like a
+// silently rounds its low bits away, and the result still looks like a
 // perfectly good timestamp, which is what makes it dangerous. It comes out of
 // the text as digits and stays a BigInt. Only the dedup rule reads it.
 export function parseFrame(text) {
@@ -52,7 +52,7 @@ export const lowByte = (v) => Math.round(Math.abs(v) * 1e6) & 0xff;
  * The decorrelation filter, and it is mandatory rather than hygiene.
  *
  * 56% of consecutive frames arrive within 25.6us of each other and 256 of 1,786
- * were exact repeats — multi-stroke flashes and repeated reports. Consecutive
+ * were exact repeats, multi-stroke flashes and repeated reports. Consecutive
  * frames are not independent, which showed up as serial correlation at lag 8
  * across every field until this was applied. About 48% of frames survive.
  *
@@ -60,7 +60,7 @@ export const lowByte = (v) => Math.round(Math.abs(v) * 1e6) & 0xff;
  * a timestamp already in the window, so its distance is zero and it is dropped
  * without needing a separate key set.
  *
- * Frames arrive out of order — `delay` runs to twelve seconds — so this holds a
+ * Frames arrive out of order, `delay` runs to twelve seconds, so this holds a
  * window of recently accepted timestamps rather than only the last one.
  *
  * ponytail: linear scan of a 256-entry window per frame, which at ~8 frames/s is

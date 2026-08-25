@@ -1,10 +1,10 @@
-/* Entropic — the instrument panel.
+/* Entropic, the instrument panel.
  *
  * The palette is Keraunos's, unchanged, because these are one series and the
  * medium is the same: light emitted on black, or ink laid on a chart recorder's
  * roll. What is transposed is the reserved mark. There, white is a lightning
  * strike and nothing else in the interface is allowed to reach it. Here, white
- * is a bit that just arrived from the sky — the walk's head, and nothing else.
+ * is a bit that just arrived from the sky, the walk's head, and nothing else.
  *
  * Every colour lives here rather than in the canvas code, so the stylesheet and
  * the drawing cannot disagree. ui.js reads these back with getComputedStyle.
