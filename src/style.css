@@ -118,6 +118,13 @@ body {
   min-height: 0;
   display: grid;
   grid-template-columns: 1fr 22rem;
+  /* The row is the panel's height, not its content's. An `auto` row cannot go
+     below the min-content of what is in it, and what is in it is a canvas whose
+     intrinsic height is whatever the last resize wrote to its attributes: on a
+     window made shorter the row kept the old height, the stage overflowed, and
+     the status line ended up drawn across the middle of the instrument. The
+     zero minimum lets the row shrink; the canvas is 100% of it either way. */
+  grid-template-rows: minmax(0, 1fr);
 }
 
 /* ── The bezel ────────────────────────────────────────────────────────────────
