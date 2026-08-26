@@ -7,7 +7,7 @@
 
 import { createSource } from "./source.js";
 import { createPool, toBits, condition, BLOCK_BYTES } from "./pool.js";
-import { runAll, MIN_BITS, CHI2_MIN_BYTES, controlRigged } from "./tests.js";
+import { runAll, TESTS, MIN_BITS, CHI2_MIN_BYTES, controlRigged } from "./tests.js";
 import { createReader, DRAWS, rangeDraw, expose } from "./draw.js";
 import { plate, exposurePlate, download } from "./art.js";
 import { render as renderBlockie, blockieDraw } from "./blockie.js";
@@ -498,7 +498,16 @@ const surrogate = $("surrogate");
 function badges() {
   const bits = toBits(pool.peek());
   if (bits.length < MIN_BITS) {
-    $("tests").innerHTML = `<p class="stream">waiting for the sky, ${bits.length} of ${MIN_BITS} bits</p>`;
+    // The four rows, waiting, rather than one line of prose that becomes four
+    // rows a minute later and shoves everything under it down the column. It
+    // also says more: which tests are coming, and that they are counting rather
+    // than broken.
+    $("tested").textContent = `${bits.length} of ${MIN_BITS} bits`;
+    renderTests(
+      $("tests"),
+      Object.keys(TESTS).map((name) => ({ name, p: NaN, verdict: "waiting", detail: "not enough bits yet" })),
+      live
+    );
     return;
   }
 

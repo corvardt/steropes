@@ -168,21 +168,13 @@
           Every step of the walk is one strike, somewhere on earth.
         </p>
 
-        <!-- The sample under test, not a balance to spend.
-             A draw never reads the pool: it waits for strikes that have not
-             happened yet. So this figure is the evidence the badges below are
-             grading, and it says so, because "bits held" beside a d20 that then
-             makes you wait reads as a budget the page is refusing to hand over.
-             The gauge is the fill; the ring's size is what full means. -->
-        <div class="block">
-          <div class="label"><span>pool</span><span>4 KB ring</span></div>
-          <!-- No glow on this one. The bloom is tuned for a 12px readout; on a
-               44px numeral the same shadow stops reading as phosphor and starts
-               reading as a blurred outline, which makes the largest figure on
-               the page the least crisp thing on it. -->
-          <div class="figure"><span id="bits">0</span><small>bits under test</small></div>
-          <div class="gauge"><span id="gauge"></span></div>
-        </div>
+        <!-- ── The pipeline, in the order it runs ──────────────────────────────
+             The sky arrives, a fix becomes two bytes, the bytes queue, the queue
+             is graded. The column used to open on the pool and put verification
+             above the stream it is a verdict on, so every block was explained by
+             one below it or by none, and six readouts never became one story.
+             Ordering them by what feeds what costs nothing and is the whole of
+             the fix. -->
 
         <div class="block">
           <div class="label"><span>the sky</span><span>session</span></div>
@@ -200,6 +192,52 @@
           </div>
         </div>
 
+        <!-- One block, because these are one thing at three stages rather than
+             three readouts: the fix, the bytes it became, and those bytes put
+             through the extractor. They were split across two blocks at two
+             heading levels, which made the middle of the pipeline read as an
+             aside to its own end. -->
+        <div class="block">
+          <!-- The step everything rests on, asserted for a long time and never
+               shown. The claim is that the low byte of a solved position is
+               noise the network cannot help making, far under the precision it
+               can really fix a strike to; here is the fix and here is the byte,
+               round(|degrees| × 1e6) &amp; 0xff, for anyone who would rather
+               check than believe. Rejected frames stay in the list: a filter
+               that discards a quarter of what arrives is easier to believe when
+               the discarding is visible. -->
+          <div class="label"><span>the stream</span><span>lat lon &#8594; bytes</span></div>
+          <ol class="derive" id="derive"></ol>
+
+          <div class="label sub"><span>raw</span><span>newest first</span></div>
+          <p class="stream" id="stream"></p>
+
+          <!-- The safety net, shown rather than described. The README has always
+               said both streams could be shown while the page showed one. The
+               source passes every test unconditioned; this is here so that claim
+               can be read against the thing it is a claim about, not to rescue
+               it. -->
+          <div class="label sub"><span>conditioned</span><span>sha-256, 64&#8594;32</span></div>
+          <p class="stream" id="cooked"></p>
+        </div>
+
+        <!-- What the queue has come to, and the sample the badges below grade.
+             Not a balance to spend: a draw never reads the pool, it waits for
+             strikes that have not happened yet, so "bits held" beside a d20 that
+             then makes you wait read as a budget the page was refusing to hand
+             over. The gauge is the fill; the ring's size is what full means. -->
+        <div class="block">
+          <div class="label"><span>pool</span><span>4 KB ring</span></div>
+          <!-- No glow on this one. The bloom is tuned for a 12px readout; on a
+               44px numeral the same shadow stops reading as phosphor and starts
+               reading as a blurred outline, which makes the largest figure on
+               the page the least crisp thing on it. -->
+          <div class="figure"><span id="bits">0</span><small>bits under test</small></div>
+          <div class="gauge"><span id="gauge"></span></div>
+        </div>
+
+        <!-- Last, because it is a verdict and everything it is a verdict on is
+             above it. -->
         <div class="block">
           <!-- Empty, not a placeholder dot: this slot qualifies the block rather
                than reporting a value, and the badges below already say what they
@@ -223,30 +261,6 @@
             </p>
             <div id="surrogate-tests"></div>
           </div>
-        </div>
-
-        <div class="block">
-          <div class="label"><span>raw stream</span><span>newest first</span></div>
-          <p class="stream" id="stream"></p>
-
-          <!-- The safety net, shown rather than described. The pool holds raw
-               bytes and puts them through SHA-256 block extraction on the way
-               out, 64 in and 32 out, and the README has always said both streams
-               could be shown while the page showed one. The source passes every
-               test unconditioned; this is here so that claim can be read against
-               the thing it is a claim about, not to rescue it. -->
-          <div class="label sub"><span>conditioned</span><span>sha-256, 64&#8594;32</span></div>
-          <p class="stream" id="cooked"></p>
-        </div>
-
-        <!-- The step between the sky and the hex above, which the page asserted
-             and never showed. Every claim it makes rests on the low byte of a
-             position being solver noise, so here is the position and here is the
-             byte, side by side, for anyone who would rather check than believe:
-             the last two hex digits of round(|degrees| x 1e6). -->
-        <div class="block">
-          <div class="label"><span>derivation</span><span>lat lon &#8594; bytes</span></div>
-          <ol class="derive" id="derive"></ol>
         </div>
 
         <!-- What this session has asked the sky, newest first. Held in the tab
