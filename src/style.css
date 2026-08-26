@@ -532,9 +532,13 @@ a.ctl:hover {
   padding: 0;
   border: 0;
   background: none;
+  font: inherit;
+  font-size: 10px;
+  line-height: 14px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--c-dim);
+  transition: color 120ms linear;
 }
 
 .card-head button:hover:not(:disabled) {
