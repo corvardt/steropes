@@ -309,10 +309,31 @@ a.ctl:hover {
   background-size: 32px 32px;
 }
 
+/* The instrument, worn as a banner: a quiet strip pinned along the bottom of
+   the tube, running under bezel and readouts alike. Translucent and
+   untouchable, so the walk is always visible being drawn while everything it
+   passes under — controls, readouts, the answer — stays readable and clickable
+   straight through it. The top edge is masked to nothing rather than cut, so
+   the strip has no border: the page simply dissolves into the sky. */
 #walk {
   display: block;
+  position: fixed;
+  inset: auto 0 0 0;
   width: 100%;
-  height: 100%;
+  height: clamp(96px, 16vh, 160px);
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0.55;
+  -webkit-mask-image: linear-gradient(to top, #000 55%, transparent);
+  mask-image: linear-gradient(to top, #000 55%, transparent);
+}
+
+/* The one part of the page that takes input, and the answer it produces, keep
+   their surface above the banner: the walk runs behind the form, seen through
+   it, never over it. */
+.bar,
+.card {
+  z-index: 6;
 }
 
 .readouts {
@@ -1167,20 +1188,11 @@ span.spark {
        to wrap, so without this the ten choices push the column wider than the
        phone and the whole page scrolls sideways. */
     min-width: 0;
-    /* One screen, less the two bezels: the instrument and the controls that
-       drive it are the first thing, and the column starts below the fold.
-       dvh, so a phone retracting its address bar does not resize the walk. */
-    height: calc(100dvh - 72px);
   }
 
-  #walk {
-    /* Whatever the bar leaves, rather than a share fixed in advance. The bar is
-       four rows on a phone and two on a tablet, and guessing at that cost the
-       walk more room than the guess was worth. */
-    flex: 1;
-    height: auto;
-    min-height: 8rem;
-  }
+  /* No walk override here any more: the walk is a fixed banner now and keeps
+     its strip whatever the screen, so the stage is just the controls and the
+     column starts right under them instead of below the fold. */
 
   /* Its own padding, not the column's: the gap is set for blocks of text a
      thumb's width apart, and spent above and below the draws it is most of a
