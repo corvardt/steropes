@@ -13,19 +13,95 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 14h3v-3h3V8h3V5h3' fill='none' stroke='%23fff' stroke-width='1.5'/%3E%3C/svg%3E"
     />
+    <!-- The relay. Deployment configuration, so it lives in the deployed
+         artifact rather than compiled into a module: there is no build step
+         here, so a `.env` would have nothing to substitute it into.
+
+         The page never talks to Blitzortung directly. The relay holds the one
+         upstream socket, which is what they ask a project using their data to
+         do, and it sends the subscription itself — which is why the page does
+         not, and why `&hello` exists only for pointing at the upstream in dev.
+
+         `?feed=wss://…` overrides this, and is how dev does that. -->
+    <meta name="feed" content="wss://keraunos-relay.covardt.workers.dev/feed" />
+
+    <!-- One tag, not one per scheme: the reader's choice is a cookie that can
+         disagree with the system, and a media-gated tag cannot see it. The
+         inline script below sets it from the palette that actually won. -->
+    <meta name="theme-color" content="#0a0a0b" />
+    <!-- The two weights the first screen is built from, fetched in parallel with
+         the stylesheet that declares them rather than after it. -->
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/ibm-plex-mono-400-latin.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/ibm-plex-mono-600-latin.woff2" crossorigin />
+    <!-- The medium, carried verbatim from Keraunos, then this instrument's own. -->
+    <link rel="stylesheet" href="/crt.css" />
     <link rel="stylesheet" href="/src/style.css" />
+    <script>
+      // Resolve the medium before first paint so the tube never flashes on
+      // paper. The cookie is written on `.corvardt.com`, so a choice made on any
+      // project carries here and back again.
+      (function () {
+        var m = document.cookie.match(/(?:^|;\s*)corvardt-theme=(dark|light)/);
+        var t = m ? m[1] : matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.dataset.theme = t;
+        // Read back off the palette rather than repeating its hexes here. This
+        // script runs after the stylesheets, so `--c-void` is already resolved.
+        document.querySelector('meta[name=theme-color]').content = getComputedStyle(
+          document.documentElement
+        ).getPropertyValue('--c-void').trim();
+      })();
+    </script>
   </head>
   <body>
+    <!-- The bezel, top. Same row every instrument in the set wears: what this is
+         on the left, what it is doing and the controls that drive it on the
+         right. The link state is read here, so it is marked here. -->
+    <header class="head">
+      <h1 class="mark">
+        <!-- Gives way first. On a narrow screen with the link state showing,
+             something has to, and the name is the one thing on this row nobody
+             needs to read twice. -->
+        <span class="wordmark glow">ENTROPIC</span>
+        <span class="slug">&#47;&#47; random numbers drawn from the sky</span>
+      </h1>
+
+      <nav class="controls">
+        <span class="link-state">
+          <!-- The indicator is itself a strike counter: it flashes on arrival. -->
+          <span class="pip" id="pip"></span>
+          <!-- Silent while it is simply working, the way the set marks a link:
+               a state worth naming is a state that is not live. -->
+          <span class="state glow" id="state" hidden></span>
+          <!-- Where the node name goes, and for the same reason: without it
+               there is no way to tell which sky you are being handed. -->
+          <span class="node" id="node">no node</span>
+        </span>
+
+        <span class="rule" aria-hidden="true"></span>
+
+        <!-- The medium it would switch you to. Dark is the default, so the
+             control offers light until the script reads the real one. -->
+        <button type="button" class="ctl" data-medium aria-label="switch to light">light</button>
+        <span class="rule" aria-hidden="true"></span>
+        <a class="ctl" href="https://github.com/corvardt" target="_blank" rel="noreferrer">src</a>
+        <a class="ctl" href="https://twitter.com/corvardt" target="_blank" rel="noreferrer">x</a>
+      </nav>
+    </header>
+
     <main class="panel">
       <section class="stage">
         <canvas id="walk"></canvas>
-        <p class="state" id="state" data-phase="connecting">connecting</p>
 
         <!-- The answer arrives over the sky it came from. -->
         <div class="card" id="card" hidden aria-live="polite">
+          <!-- Corner ticks rather than a full border, the series' instrument
+               bezel: the plate reads as a readout the panel framed, not a
+               dialog it opened. -->
+          <span class="tick tl"></span><span class="tick tr"></span>
+          <span class="tick bl"></span><span class="tick br"></span>
           <div class="card-head">
-            <span class="card-label" id="draw-label"></span>
-            <button type="button" id="card-close" aria-label="Close">close</button>
+            <span class="card-label glow" id="draw-label"></span>
+            <button type="button" id="card-close" aria-label="Close">[ esc ]</button>
           </div>
           <div id="draw-out"></div>
         </div>
@@ -43,32 +119,67 @@
       </section>
 
       <aside class="readouts">
-        <header class="mast">
-          <h1>Entropic</h1>
-          <p>
-            Random numbers drawn from lightning. Every step of the walk is one
-            strike, somewhere on earth.
-          </p>
-        </header>
+        <!-- The bezel's strapline already says what this is. What it cannot say
+             is what the canvas beside it is, so that is all this keeps. -->
+        <p class="mast">
+          Every step of the walk is one strike, somewhere on earth.
+        </p>
 
+        <!-- The sample under test, not a balance to spend.
+             A draw never reads the pool: it waits for strikes that have not
+             happened yet. So this figure is the evidence the badges below are
+             grading, and it says so, because "bits held" beside a d20 that then
+             makes you wait reads as a budget the page is refusing to hand over.
+             The gauge is the fill; the ring's size is what full means. -->
         <div class="block">
-          <div class="label"><span>pool</span><span id="pool-pct">0%</span></div>
-          <div class="figure"><span id="bits">0</span><small>bits held</small></div>
+          <div class="label"><span>pool</span><span>4 KB ring</span></div>
+          <!-- No glow on this one. The bloom is tuned for a 12px readout; on a
+               44px numeral the same shadow stops reading as phosphor and starts
+               reading as a blurred outline, which makes the largest figure on
+               the page the least crisp thing on it. -->
+          <div class="figure"><span id="bits">0</span><small>bits under test</small></div>
           <div class="gauge"><span id="gauge"></span></div>
         </div>
 
         <div class="block">
-          <div class="label"><span>the sky</span><span id="rate">·</span></div>
+          <div class="label"><span>the sky</span><span>session</span></div>
           <div class="rows">
+            <!-- First, and not buried in the heading it used to sit in: this is
+                 the only number on the page that answers "how long will a draw
+                 take", which is the question anyone about to press one has. -->
+            <div class="row"><span>rate, last 30s</span><b id="rate">·</b></div>
             <div class="row"><span>frames seen</span><b id="seen">0</b></div>
-            <div class="row"><span>strikes used</span><b id="kept">0</b></div>
-            <div class="row"><span>accepted</span><b id="accept">·</b></div>
+            <div class="row"><span>strikes kept</span><b id="kept">0</b></div>
+            <!-- Derivable from the two above, and still worth its line: the
+                 dedup rate is the measurement the filter exists to be judged on,
+                 and nobody should have to divide to read it. -->
+            <div class="row"><span>acceptance</span><b id="accept">·</b></div>
           </div>
         </div>
 
         <div class="block">
-          <div class="label"><span>verification</span><span id="tested">·</span></div>
+          <!-- Empty, not a placeholder dot: this slot qualifies the block rather
+               than reporting a value, and the badges below already say what they
+               are still waiting for. -->
+          <div class="label"><span>verification</span><span id="tested"></span></div>
           <div id="tests"></div>
+
+          <!-- Four green badges are an assertion. The counter is what turns them
+               into an argument: it is transparently not random and it passes
+               three of them. -->
+          <button type="button" class="link" id="surrogate-toggle" aria-expanded="false" aria-controls="surrogate">
+            compare with a rigged stream
+          </button>
+          <div id="surrogate" hidden>
+            <p class="note">
+              A counter, 00 01 02 03 …, graded on the same number of bits. It is
+              as predictable as a stream gets, and it still balances its ones and
+              zeros and gets its streak lengths right, so monobit and runs pass
+              it. Only chi², counting too flat as a tell, and serial correlation
+              catch it. This is why four tests run and not one.
+            </p>
+            <div id="surrogate-tests"></div>
+          </div>
         </div>
 
         <div class="block">
@@ -76,7 +187,15 @@
           <p class="stream" id="stream"></p>
         </div>
 
-        <footer>
+        <!-- What this session has asked the sky, newest first. Held in the tab
+             and nowhere else: a page whose claim is that it stores nothing has
+             no business writing your draws to disk. A reload is the end of it. -->
+        <div class="block">
+          <div class="label"><span>drawn this session</span><span id="drawn-count">none yet</span></div>
+          <ol class="log" id="history"></ol>
+        </div>
+
+        <footer class="credits">
           <p>
             Strikes from the
             <a href="https://www.blitzortung.org/" rel="noreferrer">Blitzortung</a>
@@ -91,6 +210,24 @@
         </footer>
       </aside>
     </main>
+
+    <!-- The bezel, bottom. Everything the instrument does says so here, one line
+         at a time: the clock it is running on, what just happened, whose sky. -->
+    <footer class="status">
+      <span class="stamp" id="clock">--:--:--</span>
+      <span class="message" id="message" role="status" aria-live="polite"></span>
+      <a class="source" href="https://www.blitzortung.org/" target="_blank" rel="noreferrer">
+        blitzortung.org network
+      </a>
+    </footer>
+
+    <!-- The glass. Above everything, catches nothing. -->
+    <div class="crt" aria-hidden="true">
+      <div class="crt-drift"></div>
+      <div class="crt-sweep"></div>
+      <div class="crt-scanlines"></div>
+      <div class="crt-vignette"></div>
+    </div>
 
     <script type="module" src="/src/ui.js"></script>
   </body>

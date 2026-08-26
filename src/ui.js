@@ -7,10 +7,12 @@
 
 import { createSource } from "./source.js";
 import { createPool, toBits } from "./pool.js";
-import { runAll, MIN_BITS, CHI2_MIN_BYTES } from "./tests.js";
+import { runAll, MIN_BITS, CHI2_MIN_BYTES, controlRigged } from "./tests.js";
 import { createReader, DRAWS, rangeDraw } from "./draw.js";
 import { plate, download } from "./art.js";
 import { render as renderBlockie, blockieDraw } from "./blockie.js";
+import { SPARK_W, SPARK_H, headroom, sparkY, trace } from "./spark.js";
+import { apply, current, followSystem } from "./theme.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -18,12 +20,16 @@ const $ = (id) => document.getElementById(id);
 // draw.js's table, which keeps that module free of anything that paints.
 const ALL = { ...DRAWS, blockie: blockieDraw };
 
-// The relay's hostname is deployment configuration, not something to compile in.
-// Until it is set, `?feed=wss://…` drives the page, which is also how dev points
-// straight at the upstream, with `&hello` to send the subscription the relay
-// would otherwise send itself.
+// The relay's hostname is deployment configuration, not something to compile in,
+// so it is a meta tag in the document the deploy actually serves — there is no
+// build step here for a `.env` to be substituted into.
+//
+// `?feed=wss://…` overrides it, which is how dev points straight at the upstream
+// instead, with `&hello` to send the subscription the relay would otherwise send
+// on your behalf.
 const params = new URLSearchParams(location.search);
-const FEED = params.get("feed") ?? "";
+const CONFIGURED = document.querySelector('meta[name="feed"]')?.content.trim() ?? "";
+const FEED = params.get("feed") ?? CONFIGURED;
 const HELLO = params.has("hello") ? JSON.stringify({ a: 111 }) : null;
 
 // The palette is read back from the stylesheet so the canvas and the CSS cannot
@@ -32,6 +38,105 @@ const css = getComputedStyle(document.documentElement);
 const ink = (name) => css.getPropertyValue(name).trim();
 
 const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// ── the medium ───────────────────────────────────────────────────────────────
+//
+// Tube or paper, chosen on any project on the domain and carried here by cookie.
+// Nothing needs repainting by hand: `css` is live, `ink()` reads through it, and
+// the walk is redrawn every frame anyway, so the canvas follows the flip on the
+// next frame. A plate already printed keeps the medium it was printed in, which
+// is what a print does.
+
+const medium = document.querySelector("[data-medium]");
+
+// The control carries the medium it would hand you, so the visible word is the
+// destination rather than the state.
+function label(theme) {
+  const other = theme === "dark" ? "light" : "dark";
+  medium.textContent = other;
+  medium.setAttribute("aria-label", `switch to ${other}`);
+}
+
+const setMedium = (theme) => label(apply(theme));
+const flip = () => setMedium(current() === "dark" ? "light" : "dark");
+
+label(current());
+medium.addEventListener("click", flip);
+followSystem(label);
+
+// ── the bezel ────────────────────────────────────────────────────────────────
+//
+// The two bars the whole set wears. The top one carries the link: an indicator
+// that is itself a strike counter, the state when there is a state worth naming,
+// and which sky is being handed over. The bottom one is the running commentary.
+//
+// Both matter more here than on an instrument that draws its own subject. A page
+// waiting for lightning and a page that has quietly stopped receiving look
+// identical, and without a line that says which, the honest answer to "is this
+// working" is a shrug.
+
+const pip = $("pip");
+const stateEl = $("state");
+
+// Where the strikes are coming from. The first label of the host and no more:
+// the scheme is always wss, and `.covardt.workers.dev` is the same boilerplate
+// on every worker anybody deploys, so all of it is bezel width spent saying
+// nothing. What is left identifies the node — `keraunos-relay` in production,
+// `ws1` when dev points straight at the upstream, which is the same reading the
+// rest of the set puts here.
+const host = (() => {
+  try {
+    return FEED ? new URL(FEED).hostname.split(".")[0] : null;
+  } catch {
+    // A feed that will not parse is still a feed we are about to fail to open,
+    // and the status line will say so in a moment. Nothing to add here.
+    return null;
+  }
+})();
+
+$("node").textContent = host ? `node ${host}` : "no node";
+
+// Silent while it is simply working: a state worth naming is a state that is not
+// live, which is what makes the named ones read at a glance.
+const NAMED = { connecting: "linking", down: "no signal", error: "link error" };
+
+function link(phase) {
+  pip.dataset.phase = phase;
+  const named = NAMED[phase];
+  stateEl.textContent = named ? `[ ${named} ]` : "";
+  stateEl.hidden = !named;
+}
+
+/** Every strike that gets past the dedup filter, marked. Driven from script
+ *  rather than a class, because these arrive faster than a CSS animation can be
+ *  restarted by hand and the effect is a beat, not a state: the web animation
+ *  takes over opacity for its 200ms and hands it straight back to the idle
+ *  breathe underneath. */
+const beat = () => pip.animate([{ opacity: 1 }, { opacity: 0.2 }, { opacity: 1 }], 200);
+
+const messageEl = $("message");
+const clockEl = $("clock");
+
+/** One line, replaced rather than appended: this is a readout, not a log. Each
+ *  arrives at full white and settles into the interface, the series' decay rule,
+ *  so a line that changed is visibly a line that changed. */
+function report(text) {
+  if (messageEl.textContent === text) return;
+  messageEl.textContent = text;
+  if (still) return;
+  // Restarting a CSS animation needs the class gone for a layout, not just a
+  // frame: without the reflow the browser coalesces both writes and nothing
+  // replays.
+  messageEl.classList.remove("settle");
+  void messageEl.offsetWidth;
+  messageEl.classList.add("settle");
+}
+
+const utc = () => new Date().toISOString().slice(11, 19);
+const tick = () => (clockEl.textContent = `${utc()} UTC`);
+
+tick();
+setInterval(tick, 1000);
 
 // ── the walk ─────────────────────────────────────────────────────────────────
 
@@ -52,6 +157,11 @@ const STEPS = [
 
 let carry = [];
 
+// How far along the path the drawing has got. Declared here because walk()
+// adjusts it when it trims the oldest end; the easing that drives it, and why
+// it exists at all, is with the pen below.
+let drawn = 0;
+
 function walk(bytes) {
   for (const b of bytes) for (let i = 7; i >= 0; i--) carry.push((b >> i) & 1);
   // Two bits a step, four directions, no remainder wasted.
@@ -60,12 +170,67 @@ function walk(bytes) {
     const last = pts[pts.length - 1];
     pts.push({ x: last.x + dx, y: last.y + dy });
   }
-  while (pts.length > MAX_PTS) pts.shift();
+  // Trimming the oldest end slides every index down by one, the pen's included.
+  // Left alone, the pen would be carried forward one step per point dropped —
+  // an invisible fast-forward that only starts once the walk is long enough to
+  // begin trimming, which is the worst kind of jump to go looking for later.
+  while (pts.length > MAX_PTS) {
+    pts.shift();
+    drawn = Math.max(0, drawn - 1);
+  }
 }
 
 const view = { cx: 0, cy: 0, s: 8 };
 
-function frame() {
+// ── the pen ──────────────────────────────────────────────────────────────────
+//
+// How far along the path the drawing has actually got, as a float in point-index
+// space. It exists because the walk does not grow evenly: a frame carries two
+// bytes, which is eight steps, and they were all appended between one animation
+// frame and the next. At the zoom this thing settles to that is the head jumping
+// a hundred pixels, then sitting still for a third of a second, then jumping
+// again — the path was smooth and the drawing of it was not.
+//
+// So the pen eases toward the end of the path instead of being teleported to it.
+// It runs a few steps behind during a burst and catches up in the quiet after,
+// which is what a plotter does, and the head moves continuously between lattice
+// points rather than only ever standing on one.
+
+// e-folds per second. Fast enough that the pen is never visibly behind the sky
+// at the rates this feed runs — a couple of steps at 25 a second — and slow
+// enough that eight steps arriving at once is a stroke rather than a jump.
+const CATCH = 8;
+// How quickly the view follows the path it is framing.
+const FOLLOW = 2.5;
+
+let lastAt = 0;
+
+function frame(now) {
+  // Seconds, and capped: a backgrounded tab hands back a gap of minutes, and an
+  // eased value stepped by that much lands on its target exactly as abruptly as
+  // no easing at all.
+  const dt = lastAt ? Math.min(0.1, (now - lastAt) / 1000) : 0;
+  lastAt = now;
+
+  // Rates per second rather than per frame. The old constants were per frame, so
+  // the instrument ran at one speed on a 60Hz display and another on a 144Hz
+  // one, and slowed down whenever the machine was busy.
+  const ease = (rate) => (still ? 1 : 1 - Math.exp(-rate * dt));
+
+  const end = pts.length - 1;
+  drawn = still ? end : Math.min(end, drawn + (end - drawn) * ease(CATCH));
+  // Close enough to be on it: without this the pen approaches the head
+  // asymptotically and the last hundredth of a step never arrives.
+  if (end - drawn < 0.01) drawn = end;
+
+  const at = Math.max(0, Math.floor(drawn));
+  const frac = drawn - at;
+  const next = pts[Math.min(at + 1, end)];
+  const pen = {
+    x: pts[at].x + (next.x - pts[at].x) * frac,
+    y: pts[at].y + (next.y - pts[at].y) * frac,
+  };
+
   const dpr = devicePixelRatio || 1;
   const w = canvas.clientWidth;
   const h = canvas.clientHeight;
@@ -76,11 +241,15 @@ function frame() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
 
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minY = Infinity;
-  let maxY = -Infinity;
-  for (const p of pts) {
+  // Framed on what has been drawn, not on what has arrived. Measuring the whole
+  // path would pull the view out to enclose points the pen has not reached, so
+  // the zoom would run ahead of the drawing and the two would disagree.
+  let minX = pen.x;
+  let maxX = pen.x;
+  let minY = pen.y;
+  let maxY = pen.y;
+  for (let i = 0; i <= at; i++) {
+    const p = pts[i];
     if (p.x < minX) minX = p.x;
     if (p.x > maxX) maxX = p.x;
     if (p.y < minY) minY = p.y;
@@ -93,7 +262,7 @@ function frame() {
     (h - pad * 2) / Math.max(1, maxY - minY)
   );
   // Eased so the rescale reads as the instrument adjusting rather than jumping.
-  const k = still ? 1 : 0.06;
+  const k = ease(FOLLOW);
   view.s += (Math.min(target, 14) - view.s) * k;
   view.cx += ((minX + maxX) / 2 - view.cx) * k;
   view.cy += ((minY + maxY) / 2 - view.cy) * k;
@@ -107,7 +276,7 @@ function frame() {
   // The tail, in one pass and one colour: everything older than the last stretch
   // is settled history and does not need to be distinguished within itself.
   const HOT = 240;
-  const tail = Math.max(0, pts.length - HOT);
+  const tail = Math.max(0, at - HOT);
   if (tail > 1) {
     ctx.strokeStyle = ink("--walk-tail");
     ctx.beginPath();
@@ -119,28 +288,31 @@ function frame() {
   // The recent stretch, in bands that brighten toward now. Eight strokes rather
   // than one per segment: the eye reads the gradient, not the steps.
   const BANDS = 8;
-  const span = pts.length - tail;
+  const span = at - tail;
   if (span > 1) {
     const size = Math.ceil(span / BANDS);
     for (let b = 0; b < BANDS; b++) {
       const from = tail + b * size;
-      const to = Math.min(pts.length, from + size + 1);
-      if (to - from < 2) continue;
+      const to = Math.min(at, from + size);
+      if (to - from < 1) continue;
       // Ramped over --c-text rather than --c-dim, so the recent stretch actually
       // reads as brighter than the settled tail it grows out of.
       ctx.globalAlpha = 0.3 + 0.7 * ((b + 1) / BANDS);
       ctx.strokeStyle = ink("--c-text");
       ctx.beginPath();
       ctx.moveTo(...px(pts[from]));
-      for (let i = from + 1; i < to; i++) ctx.lineTo(...px(pts[i]));
+      for (let i = from + 1; i <= to; i++) ctx.lineTo(...px(pts[i]));
+      // The band that reaches the pen carries the part-drawn step too, so the
+      // line grows continuously instead of a whole segment at a time.
+      if (to === at) ctx.lineTo(...px(pen));
       ctx.stroke();
     }
     ctx.globalAlpha = 1;
   }
 
   // The head. White is reserved for this: the bit that just came out of the sky.
-  const head = px(pts[pts.length - 1]);
-  ctx.fillStyle = ink("--c-hot");
+  const head = px(pen);
+  ctx.fillStyle = ink("--c-strike");
   if (!still) {
     ctx.shadowColor = ink("--bloom");
     ctx.shadowBlur = 12;
@@ -162,9 +334,9 @@ const recent = [];
 
 function readouts() {
   $("bits").textContent = pool.bitsAvailable.toLocaleString();
-  const pct = pool.available / pool.capacity;
-  $("gauge").style.width = `${(pct * 100).toFixed(1)}%`;
-  $("pool-pct").textContent = `${Math.round(pct * 100)}%`;
+  // The gauge is the percentage, drawn. Printing it beside the bar as well was
+  // one quantity in two places, and the bar is the one that reads at a glance.
+  $("gauge").style.width = `${((pool.available / pool.capacity) * 100).toFixed(1)}%`;
   $("seen").textContent = seen.toLocaleString();
   $("kept").textContent = kept.toLocaleString();
   $("accept").textContent = seen ? `${Math.round((100 * kept) / seen)}%` : "·";
@@ -195,18 +367,50 @@ setInterval(() => {
 // the wrong lesson about what a failing test is. So a badge only turns over
 // after three consecutive failures, and recovers on the first pass.
 const STREAK = 3;
-const fails = new Map();
-const history = new Map();
+
+// One state per badge row. The rigged row uses streak 1 on purpose: hysteresis
+// exists to absorb the false failures a live stream throws, and the surrogate is
+// deterministic, so holding its red back for three evaluations would only delay
+// the one thing it is there to show.
+const live = { fails: new Map(), history: new Map(), streak: STREAK };
+const rigged = { fails: new Map(), history: new Map(), streak: 1 };
+
+const MARKS = { pass: "ok", fail: "fail", waiting: "—" };
+
+function renderTests(host, results, state) {
+  host.innerHTML = results
+    .map((r) => {
+      const streak = r.verdict === "fail" ? (state.fails.get(r.name) ?? 0) + 1 : 0;
+      state.fails.set(r.name, streak);
+      const shown = r.verdict === "fail" && streak < state.streak ? "pass" : r.verdict;
+
+      const h = state.history.get(r.name) ?? [];
+      h.push(headroom(r));
+      if (h.length > 24) h.shift();
+      state.history.set(r.name, h);
+
+      return `<div class="test" data-verdict="${shown}" title="${r.detail}">
+        <span class="name">${r.name}</span>
+        <svg class="spark" viewBox="0 0 ${SPARK_W} ${SPARK_H}" aria-hidden="true">
+          <line class="floor" x1="0" y1="${sparkY(0)}" x2="${SPARK_W}" y2="${sparkY(0)}" />
+          ${trace(h)}
+        </svg>
+        <span class="verdict">${MARKS[shown]}</span>
+        <span class="p">${Number.isNaN(r.p) ? "·" : r.p.toFixed(3)}</span>
+      </div>`;
+    })
+    .join("");
+}
+
+const surrogate = $("surrogate");
 
 function badges() {
   const bits = toBits(pool.peek());
-  const host = $("tests");
   if (bits.length < MIN_BITS) {
-    host.innerHTML = `<p class="stream">waiting for the sky, ${bits.length} of ${MIN_BITS} bits</p>`;
+    $("tests").innerHTML = `<p class="stream">waiting for the sky, ${bits.length} of ${MIN_BITS} bits</p>`;
     return;
   }
 
-  const results = runAll(bits);
   // Bytes, not bits: the pool figure above already reports bits, and bytes is
   // the unit chi2 is gated on, so while it waits this readout says how far off
   // it is rather than repeating a number the reader already has.
@@ -214,29 +418,22 @@ function badges() {
   $("tested").textContent =
     bytes < CHI2_MIN_BYTES ? `${bytes} of ${CHI2_MIN_BYTES} bytes` : `${bytes.toLocaleString()} bytes`;
 
-  host.innerHTML = results
-    .map((r) => {
-      const streak = r.verdict === "fail" ? (fails.get(r.name) ?? 0) + 1 : 0;
-      fails.set(r.name, streak);
-      const shown = r.verdict === "fail" && streak < STREAK ? "pass" : r.verdict;
+  renderTests($("tests"), runAll(bits), live);
 
-      const h = history.get(r.name) ?? [];
-      h.push(Number.isNaN(r.p) ? 0 : r.p);
-      if (h.length > 24) h.shift();
-      history.set(r.name, h);
-
-      const points = h
-        .map((p, i) => `${(i / Math.max(1, h.length - 1)) * 56},${12 - Math.min(1, p) * 11}`)
-        .join(" ");
-
-      return `<div class="test" data-verdict="${shown}" title="${r.detail}">
-        <span class="name">${r.name}</span>
-        <svg class="spark" viewBox="0 0 56 12" aria-hidden="true"><polyline points="${points}" /></svg>
-        <span class="p">${Number.isNaN(r.p) ? "·" : `p=${r.p.toFixed(3)}`}</span>
-      </div>`;
-    })
-    .join("");
+  // The demonstration, and the reason four tests run instead of one: the same
+  // suite, on the same number of bits, against a stream that is not random by
+  // any definition. Monobit and runs wave it through; only chi2's upper tail and
+  // serial notice. Same bit count matters, a surrogate graded on a different
+  // sample size is being compared at a different sensitivity and proves nothing.
+  if (!surrogate.hidden) renderTests($("surrogate-tests"), runAll(controlRigged(bits.length)), rigged);
 }
+
+$("surrogate-toggle").addEventListener("click", (e) => {
+  surrogate.hidden = !surrogate.hidden;
+  e.target.setAttribute("aria-expanded", String(!surrogate.hidden));
+  e.target.textContent = surrogate.hidden ? "compare with a rigged stream" : "hide the rigged stream";
+  if (!surrogate.hidden) badges();
+});
 
 // ── draws ────────────────────────────────────────────────────────────────────
 
@@ -329,6 +526,69 @@ function present(spec, value, prov, again) {
   out.append(note);
 }
 
+/** What a draw reduced to one line of commentary. A plate has no short form
+ *  worth printing, so it cites what it cost instead, which is the thing the
+ *  status line is for. */
+function summarise(spec, value) {
+  if (spec.kind === "art" || spec.kind === "blockie") return "drawn";
+  if (spec.kind === "deck") return `${value[0]} off the top`;
+  return String(value);
+}
+
+// ── history ──────────────────────────────────────────────────────────────────
+//
+// What this session has asked the sky. Held in an array in the tab and nowhere
+// else: a page whose whole claim is that it stores nothing has no business
+// writing your draws to disk, and a reload being the end of them is the honest
+// version of that.
+//
+// Every entry keeps the value and the provenance rather than the rendered card,
+// so reopening one re-runs the same `present()` the draw did. A plate redraws
+// from its own bytes, which is the property the artwork's printed seed exists to
+// claim, exercised here on every recall.
+
+const HISTORY_DEPTH = 24;
+const history = [];
+const historyEl = $("history");
+
+function renderHistory() {
+  $("drawn-count").textContent = history.length
+    ? `${history.length}${history.length === HISTORY_DEPTH ? "+" : ""} held`
+    : "none yet";
+
+  historyEl.innerHTML = history
+    .map(
+      (h, i) => `<li><button type="button" data-at="${i}">
+        <span class="log-what">${h.spec.label}</span>
+        <span class="log-value">${h.short}</span>
+        <span class="log-cost">${h.strikes}&#8202;×</span>
+      </button></li>`
+    )
+    .join("");
+}
+
+function remember(spec, value, prov) {
+  history.unshift({ spec, value, prov, short: summarise(spec, value), strikes: prov.strikes });
+  // Newest first, so the window falls off the far end.
+  if (history.length > HISTORY_DEPTH) history.pop();
+  renderHistory();
+}
+
+// One listener on the list rather than one per row, so re-rendering it does not
+// have to re-bind anything.
+historyEl.addEventListener("click", (e) => {
+  const at = e.target.closest("button")?.dataset.at;
+  // Not while a draw is in flight: the card belongs to the sky until it answers.
+  if (at === undefined || draw) return;
+  const h = history[Number(at)];
+  card.hidden = false;
+  $("draw-label").textContent = `${h.spec.label} · drawn earlier`;
+  present(h.spec, h.value, h.prov, () => begin(h.spec));
+  $("card-close").focus();
+});
+
+renderHistory();
+
 async function begin(spec) {
   if (draw) return;
   draw = { reader: createReader(), spec };
@@ -337,12 +597,20 @@ async function begin(spec) {
   $("draw-label").textContent = spec.label;
   for (const b of buttons()) b.disabled = true;
   waiting();
+  report(`${spec.label}: waiting for the sky`);
 
   const value = await spec.run(draw.reader);
   const prov = draw.reader.provenance();
   draw = null;
   for (const b of buttons()) b.disabled = false;
 
+  const span = prov.from ? Number((prov.to - prov.from) / 1000000n) / 1000 : 0;
+  report(
+    `${spec.label}: ${summarise(spec, value)} — ${prov.strikes} strike${prov.strikes === 1 ? "" : "s"}` +
+      (span ? ` over ${span.toFixed(1)}s` : "")
+  );
+
+  remember(spec, value, prov);
   present(spec, value, prov, () => begin(spec));
   $("card-close").focus();
 }
@@ -370,34 +638,37 @@ $("range-form").addEventListener("submit", (e) => {
 $("card-close").addEventListener("click", closeCard);
 addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !card.hidden && !draw) closeCard();
+  // `t` for the medium, the same key the rest of the set uses. Not while a
+  // range is being typed into, where it is just a letter.
+  if (e.key === "t" && e.target.tagName !== "INPUT") flip();
 });
 
 // ── run ──────────────────────────────────────────────────────────────────────
 
-const state = $("state");
-const say = (phase, text) => {
-  state.dataset.phase = phase;
-  state.textContent = text;
+const SAYS = {
+  connecting: "opening the link",
+  live: "receiving",
+  down: "link lost, retrying",
+  error: "link error",
 };
 
 if (!FEED) {
-  say("down", "no feed configured: append ?feed=wss://…");
+  link("down");
+  report("no feed configured: append ?feed=wss://…");
 } else {
   createSource({
     url: FEED,
     hello: HELLO,
-    onStatus: ({ phase }) =>
-      say(
-        phase,
-        { connecting: "connecting", live: "receiving", down: "link lost, retrying", error: "link error" }[
-          phase
-        ] ?? phase
-      ),
+    onStatus: ({ phase }) => {
+      link(phase);
+      report(phase === "live" ? `receiving from ${host}` : (SAYS[phase] ?? phase));
+    },
     onFrame: (_f, accepted) => {
       seen++;
       if (accepted) {
         kept++;
         recent.push(Date.now());
+        if (!still) beat();
       }
     },
     onBytes: (bytes, frame) => {

@@ -1,0 +1,402 @@
+/* ── crt.css ────────────────────────────────────────────────────────────────
+   The shared medium. Palette, glass and decay, carried verbatim from Keraunos
+   so the index and every project subdomain are the same instrument. Nothing
+   page-specific belongs in here — see index.css for that. */
+
+/* ── Type ───────────────────────────────────────────────────────────────────
+   Served from this origin, not from Google. A page whose creed line is about
+   keeping control of your own data has no business handing every visitor's IP
+   to a third party for a typeface. The files travel with this stylesheet: copy
+   `fonts/` alongside it into each project.
+
+   Latin and latin-ext only — Plex Mono ships no Greek, so the etymologies fall
+   to the system mono either way, and `unicode-range` keeps latin-ext off the
+   wire until something actually needs it. */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-400-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-400-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-500-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-500-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-600-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-600-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* ── Dark ───────────────────────────────────────────────────────────────────
+   Light emitted on black. White is reserved: nothing in the interface reaches
+   it except the record currently tuned in. */
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --c-void: #0a0a0b;
+  --c-panel: #0f0f11;
+  --c-line: #26262b;
+  --c-land: #4c4c55;
+  --c-dim: #7b7b81;
+  --c-text: #c8c8cc;
+  --c-strike: #ffffff;
+
+  --ink-hot: #ffffff;
+  --ink-rest: #c8c8cc;
+  --scan: rgba(255, 255, 255, 0.05);
+  --sweep: rgba(255, 255, 255, 0.028);
+  --vignette: rgba(0, 0, 0, 0.62);
+  --bloom: rgba(255, 255, 255, 0.14);
+  --bloom-hot: rgba(255, 255, 255, 0.3);
+  /* Its own token, not the sweep's. A broad field needs several times the
+     alpha of a narrow band to read at all, and the two are tuned by eye on a
+     real display — turn this down if the glass starts to look dirty rather
+     than uneven. */
+  --drift: rgba(255, 255, 255, 0.04);
+}
+
+/* ── Light ──────────────────────────────────────────────────────────────────
+   The other readout: ink on a chart recorder's roll. A tube cannot be
+   inverted, so light mode changes medium instead. Black takes over the
+   reserved role; cool neutral stock, never cream. */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --c-void: #dedee0;
+  --c-panel: #e7e7e9;
+  --c-line: #c2c2c6;
+  --c-land: #9a9aa2;
+  --c-dim: #626268;
+  --c-text: #2a2a2e;
+  --c-strike: #000000;
+
+  --ink-hot: #000000;
+  --ink-rest: #2a2a2e;
+  --scan: rgba(0, 0, 0, 0.045);
+  --sweep: rgba(0, 0, 0, 0.022);
+  --vignette: rgba(0, 0, 0, 0.14);
+  /* Ink bleeds into paper fibres rather than glowing. */
+  --bloom: rgba(0, 0, 0, 0.16);
+  --bloom-hot: rgba(0, 0, 0, 0.28);
+  /* Stock is not evenly lit either, but paper shows a shadow sooner than a
+     tube shows a bloom, so it takes less. */
+  --drift: rgba(0, 0, 0, 0.03);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--c-void);
+  color: var(--c-text);
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+  font-size: 12px;
+  line-height: 18px;
+  /* Digits must not jitter as readouts tick. */
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 1px solid var(--c-text);
+  outline-offset: 2px;
+}
+
+/* ── Phosphor bloom ─────────────────────────────────────────────────────────
+   Lit pixels bleed into the glass. Reserved for live values, never for
+   labels: the glow marks what is actually reading. */
+.glow {
+  text-shadow: 0 0 6px var(--bloom);
+}
+
+.glow-hot {
+  text-shadow: 0 0 10px var(--bloom-hot);
+}
+
+/* ── The decay rule ─────────────────────────────────────────────────────────
+   Anything that arrives comes in at full white and settles into the gray of
+   the interface. */
+@keyframes settle {
+  from {
+    color: var(--ink-hot);
+    text-shadow: 0 0 10px var(--bloom-hot);
+  }
+  to {
+    color: var(--ink-rest);
+    text-shadow: 0 0 6px var(--bloom);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes seek {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.settle {
+  animation: settle 1.4s ease-out;
+}
+
+.breathe {
+  animation: breathe 2.8s ease-in-out infinite;
+}
+
+.seek {
+  animation: seek 1.6s ease-in-out infinite;
+}
+
+/* ── The glass ──────────────────────────────────────────────────────────────
+   Sits above everything, catches no pointer events, and is the only place the
+   retro treatment lives — the page underneath stays clean. */
+.crt {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.crt-scanlines {
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--scan) 0px,
+    var(--scan) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.crt-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(125% 105% at 50% 50%, transparent 52%, var(--vignette) 100%);
+}
+
+@keyframes refresh-sweep {
+  from {
+    transform: translateY(-14vh);
+  }
+  to {
+    transform: translateY(104vh);
+  }
+}
+
+.crt-sweep {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 14vh;
+  background: linear-gradient(to bottom, transparent, var(--sweep), transparent);
+  animation: refresh-sweep 7.5s linear infinite;
+}
+
+/* ── Phosphor drift ─────────────────────────────────────────────────────────
+   A tube does not emit evenly. Two very soft blooms wander the glass on
+   periods that do not divide into each other, so the brightness across the
+   page is never flat and never quite repeats — the sweep passing over an
+   unevenness rather than over a blank.
+
+   Transform only. These are full-viewport layers, and animating anything that
+   repaints would hand the compositor the whole page on every frame; an
+   animated transform gets a layer of its own and costs nearly nothing. They
+   sit under the scanlines and the vignette, which is the order the glass is
+   built in. */
+.crt-drift {
+  position: absolute;
+  inset: 0;
+}
+
+.crt-drift::before,
+.crt-drift::after {
+  content: '';
+  position: absolute;
+  /* Wide enough to have no edge on screen, tight enough that the falloff still
+     changes from one side of the page to the other. Spread it much further and
+     the gradient per pixel drops under what a display can show, which is a
+     bloom that is technically there and invisible. */
+  width: 75vmax;
+  height: 75vmax;
+  background: radial-gradient(closest-side, var(--drift), transparent);
+  animation: drift-a 37s ease-in-out infinite alternate;
+}
+
+/* Held off the corners: the vignette is at its heaviest there and would eat
+   most of what these are for. */
+.crt-drift::before {
+  top: -22vmax;
+  left: -18vmax;
+}
+
+.crt-drift::after {
+  bottom: -22vmax;
+  right: -18vmax;
+  animation-name: drift-b;
+  animation-duration: 53s;
+}
+
+/* Two vectors rather than one run backwards: parallel blooms read as a single
+   layer sliding, crossing ones read as the tube being uneven. */
+@keyframes drift-a {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(26vmax, 16vmax, 0);
+  }
+}
+
+@keyframes drift-b {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-21vmax, 13vmax, 0);
+  }
+}
+
+/* ── HUD frame ──────────────────────────────────────────────────────────────
+   Corner ticks instead of full borders: the frame reads as an instrument
+   bezel and leaves the edges open. */
+.tick {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-color: var(--c-land);
+  border-style: solid;
+  border-width: 0;
+  pointer-events: none;
+}
+
+.tick.tl {
+  top: 0;
+  left: 0;
+  border-top-width: 1px;
+  border-left-width: 1px;
+}
+
+.tick.tr {
+  top: 0;
+  right: 0;
+  border-top-width: 1px;
+  border-right-width: 1px;
+}
+
+.tick.bl {
+  bottom: 0;
+  left: 0;
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+}
+
+.tick.br {
+  bottom: 0;
+  right: 0;
+  border-bottom-width: 1px;
+  border-right-width: 1px;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--c-line);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--c-land);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settle,
+  .breathe,
+  .seek,
+  .crt-sweep,
+  .crt-drift::before,
+  .crt-drift::after {
+    animation: none;
+  }
+}

@@ -14,6 +14,7 @@ import { createFilter, lowByte, parseFrame, SPACING_NS } from "../src/source.js"
 import { createPool, toBits, condition } from "../src/pool.js";
 import { createReader, below, between, shuffle, uuid, DECK } from "../src/draw.js";
 import { blockie } from "../src/blockie.js";
+import { SPARK_H, headroom, sparkY, trace } from "../src/spark.js";
 
 // Resolved from this file rather than the cwd, so the check behaves the same
 // whether npm runs it from the root or someone runs it from tools/.
@@ -40,6 +41,15 @@ console.log("\ncontrols");
   const rigged = verdicts(controlRigged(40000));
   check(rigged["chi2/byte"] === "fail", "counter fails chi2 (too flat is a tell)");
   check(rigged.serial === "fail", "counter fails serial");
+
+  // The surrogate panel on the page tells the visitor which way each badge will
+  // go. If the suite changes and this claim stops holding, the page is teaching
+  // the wrong lesson with a straight face, so the claim is asserted rather than
+  // written once in HTML and left to rot.
+  check(
+    rigged.monobit === "pass" && rigged.runs === "pass",
+    `counter passes monobit and runs, as the surrogate panel says, ${JSON.stringify(rigged)}`
+  );
 }
 
 // ── the fixture must still pass ──────────────────────────────────────────────
@@ -243,6 +253,51 @@ console.log("\nblockie");
   const total = counts.reduce((a, b) => a + b, 0);
   const spot = counts[2] / total;
   check(spot > 0.09 && spot < 0.17, `spot cells are the rare third, ${(spot * 100).toFixed(1)}% (expect ~13%)`);
+}
+
+// ── the badge trace ──────────────────────────────────────────────────────────
+//
+// The transform the verification sparklines are drawn through. It exists because
+// a p-value on a linear axis puts the threshold in the bottom 1% of the chart,
+// where nobody can see the one line that decides the verdict.
+console.log("\nbadge trace");
+{
+  // Zero is the threshold, whichever alpha the test is actually held to, which
+  // is what lets one rule be drawn at one height across all four rows.
+  check(headroom({ p: 0.01, tail: "right" }) === 0, "a one-sided test sits on zero at p=0.01");
+  check(headroom({ p: 0.005, tail: "both" }) === 0, "a two-sided test sits on zero at p=0.005");
+  check(
+    Math.abs(headroom({ p: 0.995, tail: "both" }) - 0) < 1e-9,
+    "and at p=0.995, because too flat is the same distance from failing"
+  );
+
+  check(headroom({ p: 0.5, tail: "right" }) > 0, "a healthy p-value sits above the rule");
+  check(headroom({ p: 0.001, tail: "right" }) < 0, "and a failing one below it");
+
+  // The bug this replaced: NaN plotted as zero drew a test that was merely
+  // waiting for its minimum sample as a flatline along the floor.
+  check(headroom({ p: NaN, tail: "both" }) === null, "no reading yet is null, not a score of zero");
+
+  // Higher headroom must never draw lower on the tube.
+  check(
+    Number(sparkY(2)) < Number(sparkY(0)) && Number(sparkY(0)) < Number(sparkY(-1)),
+    "more headroom draws higher"
+  );
+  check(
+    Number(sparkY(9)) === Number(sparkY(2)) && Number(sparkY(-9)) === Number(sparkY(-1)),
+    "and the axis clamps, so one catastrophic reading cannot flatten the window"
+  );
+  check(
+    Number(sparkY(0)) > 1 && Number(sparkY(0)) < SPARK_H - 1,
+    "the rule sits inside the box, not on its edge"
+  );
+
+  // A gap is a gap: the trace must break across it rather than drawing a line
+  // from before the outage to after it.
+  const broken = trace([1, 1, null, null, 1, 1]);
+  check((broken.match(/<polyline/g) ?? []).length === 2, "a gap in the readings breaks the trace in two");
+  check(trace([null, null]) === "", "all-null draws nothing");
+  check(trace([1]).includes("<circle"), "a single reading is a point, since a one-point line is invisible");
 }
 
 console.log(failures ? `\n${failures} failed\n` : "\nall passed\n");

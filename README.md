@@ -68,14 +68,43 @@ of all frames survive, measured at 48% offline and 51% in the browser.
 
 ## The tests
 
-Four, running continuously on the pool, all two-sided:
+Four, running continuously on the pool, all two-sided. Each returns a p-value:
+the probability of seeing a pattern this extreme *if the stream really were
+random*. A low p means the pattern would be a surprising coincidence, and below
+0.01 the badge calls it a failure.
 
-| | |
-| --- | --- |
-| **monobit** | Are there as many ones as zeros |
-| **runs** | Are the streaks the right length. Catches a balanced stream that merely alternates |
-| **chi² per byte** | Is the byte distribution flat. Fails *too* flat as well as too lumpy |
-| **serial** | Correlation at lag 1 to 8, Bonferroni corrected |
+They are a ladder. Every one of them exists because the one before it can be
+fooled, and the fourth column is the whole reason there are four.
+
+| | asks | fails when | fooled by |
+| --- | --- | --- | --- |
+| **monobit** | Are there as many ones as zeros | one symbol leads | `0101…`, perfectly balanced and perfectly predictable |
+| **runs** | Are the streaks the right length | too many transitions, or too few | structure that only shows at the byte level |
+| **chi² per byte** | Is the byte distribution flat | lumpy, *or too flat* | correlation with flat marginals |
+| **serial** | Is there correlation at lag 1 to 8 | any lag repeats | — |
+
+**monobit** counts the ones and measures how far off half that is, in standard
+deviations: `s = |2·ones − n| / √n`, then `p = erfc(s/√2)`.
+
+**runs** counts maximal streaks of identical bits against the `2n·π(1−π)`
+expected of independent ones. This is what kills the alternating stream monobit
+waves through — it has the most runs a sequence can have. It carries a
+precondition: if monobit is already badly off, the runs statistic is not
+meaningful, so it returns p=0 rather than a number that looks like a reading.
+
+**chi² per byte** packs the bits into bytes, counts all 256 values and compares
+to the `n/256` expected, `X2 = Σ (observed − expected)² / expected` on df=255,
+with p from the Wilson–Hilferty approximation. It needs 1,280 bytes so that
+every bin expects at least five; below that it reports no reading rather than an
+invalid one. A real stream scatters around X2≈255 — the lightning scores 286,
+the seeded-PRNG control 265.
+
+**serial** counts, for each lag 1 to 8, how often bit *i* equals bit *i+k*.
+Independent bits agree half the time, and a repeat every k bits spikes at lag k.
+It is the test that caught the duplicate frames before deduplication existed.
+
+Each badge's tooltip carries the test's own working: `1247/2496 ones`,
+`X2=286 df=255, 1502 bytes`, `worst lag 3 (x8 corrected), 1:0.412 2:0.208 …`.
 
 Two details worth the space, because both were bugs first.
 
@@ -92,6 +121,38 @@ Even corrected, four tests at p<0.01 throw a false failure on roughly 4% of
 evaluations. That is what the threshold means, not a defect. The badges
 therefore need three consecutive failures before they turn over, and a single
 red badge is expected. Only a badge that stays red is telling you something.
+
+### Reading the badges
+
+Each badge is a row: the test, a trace of its last twenty-four evaluations
+against the threshold it is held to, the verdict in a word, and the current
+p-value. The verdict is written as well as coloured, because the amber is the
+only colour on the site and a reading that exists only in a hue is a reading
+some people never get.
+
+The trace does not plot p. Drawn against a linear 0..1 axis the threshold sits at
+0.01 — the bottom one percent of the box, a tenth of a pixel at this height — so
+the one line that decides the verdict was invisible and the trace was a wiggle
+with no reading on it. It plots **headroom** instead: `log10(margin / alpha)`,
+how many decades of room the test has before it fails. Zero is exactly on the
+threshold, positive is passing, negative is failing.
+
+Two things fall out of normalising against each test's own alpha. One dashed
+rule can be drawn at one height across all four rows and mean the same thing on
+each. And the two-sided case folds in: for chi² the margin is `min(p, 1−p)`, so
+a trace diving toward the rule reads the same whether it is going too lumpy or
+too flat. The rigged stream's chi² pins itself to the floor at p=1.000, which is
+the whole argument, drawn.
+
+The axis clamps to two decades above the rule and one below, so a single
+catastrophic evaluation cannot flatten every other point in the window against
+an edge. A test still waiting for its minimum sample has no p-value at all, and
+that absence leaves a gap in the trace — it used to be plotted as zero, the
+worst score there is, which drew chi² as a flatline along the floor while it was
+merely counting bytes.
+
+`src/spark.js` holds the transform on its own, and `npm test` grades it: a
+transform nobody can run is a transform nobody can check.
 
 ## Drawing from it
 
@@ -115,6 +176,17 @@ prints what the modulus would have produced beside it.
 The **artwork** is a walk from its own 256 bits, the same form the page draws
 large, with the seed printed underneath in full so the plate can be redrawn from
 its own caption and checked.
+
+Every draw lands in **drawn this session**, newest first, twenty-four deep. A row
+is what was asked, what came back and what it cost in strikes, and clicking one
+reopens it. The entries hold the value and its provenance rather than a rendered
+card, so reopening re-runs the same render the draw did: a plate recalled is a
+plate redrawn from its own bytes, which is the property its printed seed claims,
+exercised on every recall.
+
+The history lives in the tab and nowhere else. A page whose claim is that it
+stores nothing has no business writing your draws to disk, so a reload is the end
+of them.
 
 The **blockie** is the identicon from Tyche, whose tile rules come from the
 classic ethereum-blockies construction: an 8x8 grid with its left four columns
@@ -159,10 +231,75 @@ npm run dev               # serve the page on :8080
 No dependencies and nothing to install. Node has had a global WebSocket since
 v22, which is all the tooling needs.
 
-The page reads its feed from `?feed=wss://…`. In production that is the relay.
-For development, `?feed=wss://ws1.blitzortung.org:443/&hello=1` talks straight
-to the upstream, where `hello` sends the subscription the relay would otherwise
-send on your behalf.
+### The feed
+
+The page never talks to Blitzortung directly. The relay built for Keraunos holds
+the one upstream socket and fans it out, which is what Blitzortung ask a project
+using their data to do, and both instruments read from it.
+
+Its address is deployment configuration, so it sits in the document that gets
+deployed rather than compiled into a module — there is no build step here for a
+`.env` to be substituted into, which is where Keraunos keeps the same value:
+
+```html
+<meta name="feed" content="wss://keraunos-relay.covardt.workers.dev/feed" />
+```
+
+`?feed=wss://…` overrides it. For development,
+`?feed=wss://ws1.blitzortung.org:443/&hello=1` talks straight to the upstream
+without a relay in the way, where `hello` sends the subscription the relay would
+otherwise send on your behalf. Against the relay no `hello` is sent, because it
+subscribes itself; sending a second one would be a duplicate subscription.
+
+**The relay decides which origins it carries.** Its `ALLOWED_ORIGINS` is a
+comma-separated list, and unset it answers anybody, which is what a local
+`wrangler dev` wants and what a public deployment does not — an open relay in
+front of a volunteer's server hands back the one property the relay exists to
+protect. So Entropic's origin has to be added to it, alongside Keraunos's. Until
+it is, the handshake is refused with a 403 and the bezel sits on `[ linking ]`
+forever, which looks exactly like a relay that is down.
+
+## Deploying
+
+There is no build step, which is the point. The repository *is* the site: point
+Cloudflare Pages at it with an empty build command and the root as the output
+directory, and what gets served is what is committed.
+
+That is a deliberate trade and worth stating plainly, because it is the opposite
+of what the two React projects in the set do. Vite exists in Keraunos and Tyche
+to compile JSX; nothing here needs compiling, and bundling would cost the one
+property this page is built to have — a reader can open devtools on the deployed
+site and read the same `tests.js` that is grading the stream, comments intact.
+Minified into a hashed bundle, "verified in front of you" becomes a claim rather
+than something you can check. Oikos, the other project in the set with no JSX,
+ships raw for the same reason.
+
+The bill for that is stable filenames, and `_headers` pays it: the fonts are held
+forever, everything else revalidates. Without it a returning reader can run last
+week's tests while this week's badges vouch for them.
+
+Two things are not in this repository and have to be done once:
+
+**Add the origin to the relay.** `ALLOWED_ORIGINS` on the Keraunos relay worker
+is a comma-separated exact-match list of the origins it will carry, and unset it
+answers anybody — an open relay in front of a volunteer's server, which is the
+one thing the relay exists to prevent. It currently holds Keraunos alone, so
+Entropic's origin has to be appended:
+
+```
+https://keraunos.corvardt.com,https://entropic.corvardt.com
+```
+
+No trailing slashes: a browser's `Origin` header never carries one, and the
+match is exact, so `https://entropic.corvardt.com/` is silently refused. Until
+the origin is on the list the handshake is rejected with a 403 and the bezel
+sits on `[ linking ]`, which looks exactly like a relay that is down.
+
+**The unfurl.** There is no `og.png` and no `apple-touch-icon.png` yet. The
+favicon is an inline SVG in the document and needs nothing, but a pasted link
+currently previews as a grey box with a domain in it. Keraunos captures its card
+from the running instrument rather than drawing one, so the picture cannot drift
+from what the page actually looks like; the same is worth doing here.
 
 ## Layout
 
@@ -170,11 +307,18 @@ send on your behalf.
 src/          source.js   the socket, the dedup filter, extraction
               pool.js     4KB ring of raw bytes, SHA-256 extraction
               tests.js    the four tests, and the only copy of them
+              spark.js    the badge trace: headroom, not p
               draw.js     the suspending byte reader, unbiased integers
               art.js      the artwork plate
               blockie.js  the identicon, from Tyche's tile rules
-              ui.js       the walk, the gauges, the badges, the draws
-              style.css   the palette, shared with Keraunos
+              ui.js       the bezels, the walk, the gauges, the badges, the
+                          draws and the session's history
+              theme.js    the medium, on the cookie the whole domain shares
+              style.css   this instrument's own; the medium is crt.css
+crt.css       the shared medium: palette, type, glass, decay. Carried verbatim
+              from Keraunos by way of Oikos, so the whole set is one instrument
+_headers      cache policy. Stable filenames need one; see Deploying
+fonts/        IBM Plex Mono, served from this origin rather than from Google
 tools/        check.mjs   npm test
               smoke.mjs   npm run smoke
               analyse.mjs npm run analyse

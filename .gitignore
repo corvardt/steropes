@@ -1,5 +1,12 @@
 node_modules/
 
+# Agent scratch, and worktrees kept under it. Local to a machine, and none of
+# the other projects in the set track theirs either. It matters more here than
+# it looks: the deploy publishes this repository as it stands, with no build
+# step to put a clean directory between the source and the site, so anything
+# left lying in the tree is a thing the site serves.
+.claude/
+
 # Raw harvests. Regenerable with `npm run harvest`, and bulky.
 # fixtures/strikes.jsonl is deliberately tracked: it is the deduplicated sample
 # every figure in plan.md and the README was measured against, and the check
