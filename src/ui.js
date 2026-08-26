@@ -973,13 +973,39 @@ $("expose-form").addEventListener("submit", (e) => {
 });
 
 // Built from the DRAWS table rather than written out, so a new draw is one entry
-// in draw.js and nothing here.
-$("draw-buttons").innerHTML = Object.keys(ALL)
-  .map((k) => `<button type="button" data-draw="${k}">${ALL[k].label}</button>`)
-  .join("");
+// in draw.js and nothing here. The three that take a setting follow as chips
+// that open their own row, which is what makes the strip one row on a phone
+// instead of four: the settings are there when the draw is being chosen and not
+// before.
+const SETTINGS = { expose: "expose", monkey: "monkey", range: "range" };
+$("draw-buttons").innerHTML =
+  Object.keys(ALL)
+    .map((k) => `<button type="button" data-draw="${k}">${ALL[k].label}</button>`)
+    .join("") +
+  Object.entries(SETTINGS)
+    .map(([k, label]) => `<button type="button" class="opener" data-form="${k}" aria-expanded="false" aria-controls="${k}-form">${label}…</button>`)
+    .join("");
+
+const bar = $("bar");
+
+/** Which settings row is showing. A second press on the same chip closes it,
+ *  because the way out of a menu has to be the way in. On a wide screen all
+ *  three rows are always up and the chips are not rendered, so this does
+ *  nothing there. */
+function openSettings(name) {
+  const shut = bar.dataset.open === name;
+  bar.dataset.open = shut ? "" : name;
+  for (const chip of bar.querySelectorAll(".opener")) {
+    chip.setAttribute("aria-expanded", String(chip.dataset.form === bar.dataset.open));
+  }
+  if (!shut) $(`${name}-form`).querySelector("select, input")?.focus({ preventScroll: true });
+}
+
 $("draw-buttons").addEventListener("click", (e) => {
-  const kind = e.target.closest("button")?.dataset.draw;
-  if (kind) begin(ALL[kind]);
+  const pressed = e.target.closest("button");
+  if (!pressed) return;
+  if (pressed.dataset.form) return openSettings(pressed.dataset.form);
+  if (pressed.dataset.draw) begin(ALL[pressed.dataset.draw]);
 });
 
 $("range-form").addEventListener("submit", (e) => {

@@ -137,41 +137,50 @@
           <div id="draw-out"></div>
         </div>
 
-        <div class="bar">
+        <div class="bar" id="bar">
+          <!-- One strip of choices, which on a phone scrolls sideways under a
+               thumb rather than wrapping into four rows over the walk. The
+               three draws that take a setting are chips in the same strip and
+               open their own row under it; on a wide screen the chips go and
+               the rows are simply there, which is what `display: contents`
+               below is for. -->
           <div class="bar-draws" id="draw-buttons"></div>
-          <!-- Not a draw of a fixed size but a window: the plate is whatever
-               the sky gives while it is open, so the duration is the subject. -->
-          <form class="bar-range" id="expose-form">
-            <label for="expose-mins">expose</label>
-            <select id="expose-mins">
-              <option value="1">1 min</option>
-              <option value="5" selected>5 min</option>
-              <option value="15">15 min</option>
-            </select>
-            <button type="submit">open</button>
-          </form>
 
-          <!-- Borel's monkey, with the sky on the keys. Every extra letter is
-               twenty-seven times more arrangements against a dictionary that
-               does not grow nearly as fast, so the wait goes up about fourteen
-               fold a letter: the theorem, in a select. -->
-          <form class="bar-range" id="monkey-form">
-            <label for="monkey-len">monkey</label>
-            <select id="monkey-len">
-              <option value="3" selected>3 letters · ~30 keys</option>
-              <option value="4">4 letters · ~218 keys</option>
-              <option value="5">5 letters · ~3,075 keys</option>
-            </select>
-            <button type="submit">type</button>
-          </form>
+          <div class="bar-forms">
+            <!-- Not a draw of a fixed size but a window: the plate is whatever
+                 the sky gives while it is open, so the duration is the subject. -->
+            <form class="bar-range" id="expose-form">
+              <label for="expose-mins">expose</label>
+              <select id="expose-mins">
+                <option value="1">1 min</option>
+                <option value="5" selected>5 min</option>
+                <option value="15">15 min</option>
+              </select>
+              <button type="submit">open</button>
+            </form>
 
-          <form class="bar-range" id="range-form">
-            <label for="range-min">from</label>
-            <input id="range-min" type="number" value="1" step="1" inputmode="numeric" />
-            <label for="range-max">to</label>
-            <input id="range-max" type="number" value="100" step="1" inputmode="numeric" />
-            <button type="submit">draw</button>
-          </form>
+            <!-- Borel's monkey, with the sky on the keys. Every extra letter is
+                 twenty-seven times more arrangements against a dictionary that
+                 does not grow nearly as fast, so the wait goes up about fourteen
+                 fold a letter: the theorem, in a select. -->
+            <form class="bar-range" id="monkey-form">
+              <label for="monkey-len">monkey</label>
+              <select id="monkey-len">
+                <option value="3" selected>3 letters · ~30 keys</option>
+                <option value="4">4 letters · ~218 keys</option>
+                <option value="5">5 letters · ~3,075 keys</option>
+              </select>
+              <button type="submit">type</button>
+            </form>
+
+            <form class="bar-range" id="range-form">
+              <label for="range-min">from</label>
+              <input id="range-min" type="number" value="1" step="1" inputmode="numeric" />
+              <label for="range-max">to</label>
+              <input id="range-max" type="number" value="100" step="1" inputmode="numeric" />
+              <button type="submit">draw</button>
+            </form>
+          </div>
         </div>
       </section>
 
