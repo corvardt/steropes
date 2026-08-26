@@ -618,6 +618,13 @@ a.ctl:hover {
   height: 20px;
 }
 
+/* The surrogate keeps the column and draws nothing in it, so its rows stay
+   aligned with the live ones they are there to be compared against. */
+span.spark {
+  width: 96px;
+  height: 20px;
+}
+
 .spark polyline,
 .spark circle {
   fill: none;

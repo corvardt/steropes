@@ -101,6 +101,11 @@ export function createSource({ url, onBytes, onFrame, onStatus, hello = null }) 
     if (stopped) return;
     onStatus?.({ phase: "connecting" });
     const ws = new WebSocket(url);
+    // So a control frame can be told from a strike frame synchronously, by
+    // type. A blob would have to be read back asynchronously to find out which
+    // of the two it was, and until this was set every control frame arrived as
+    // one and was dropped unread.
+    ws.binaryType = "arraybuffer";
     socket = ws;
 
     ws.onopen = () => {
@@ -109,13 +114,39 @@ export function createSource({ url, onBytes, onFrame, onStatus, hello = null }) 
       // and sends the subscription itself, which is the whole point of it. It is
       // here so dev can point straight at Blitzortung without running a relay.
       if (hello) ws.send(hello);
-      onStatus?.({ phase: "live" });
+
+      // Linked, and not yet hearing anything. Our socket being open says only
+      // that the relay accepted us; whether it has an upstream of its own, and
+      // which node it is on, arrives in its first control frame. Reporting live
+      // here claimed a feed on the strength of a connection to something that
+      // might have no feed at all.
+      //
+      // Talking straight to the upstream there is no relay to say so, and the
+      // socket being open is the whole of the news.
+      onStatus?.({ phase: hello ? "live" : "connecting" });
     };
 
     ws.onmessage = (event) => {
-      // The relay reports its own state as bytes and the feed's frames as text,
-      // so the two are told apart by type rather than by parsing.
-      if (typeof event.data !== "string") return;
+      // The relay, telling us about itself. Never a strike: it sends its own
+      // state as bytes and the feed's frames as text, which is the one way to
+      // tell them apart that their contents cannot confuse — a compressed frame
+      // is arbitrary text, and any marker inside one could occur in the other.
+      if (typeof event.data !== "string") {
+        try {
+          const link = JSON.parse(new TextDecoder().decode(event.data));
+          onStatus?.({
+            phase: link.live ? "live" : "connecting",
+            // Which Blitzortung node the relay is actually hearing, which is the
+            // only place this can come from: our own URL names the relay, and
+            // the relay is not the sky.
+            node: link.node ?? null,
+            live: Boolean(link.live),
+          });
+        } catch {
+          // A control frame we cannot read says nothing about the feed.
+        }
+        return;
+      }
       const frame = parseFrame(decode(event.data));
       if (!frame) return;
       const bytes = accept(frame);

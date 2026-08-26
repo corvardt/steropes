@@ -78,13 +78,18 @@ followSystem(label);
 const pip = $("pip");
 const stateEl = $("state");
 
-// Where the strikes are coming from. The first label of the host and no more:
-// the scheme is always wss, and `.covardt.workers.dev` is the same boilerplate
-// on every worker anybody deploys, so all of it is bezel width spent saying
-// nothing. What is left identifies the node — `keraunos-relay` in production,
-// `ws1` when dev points straight at the upstream, which is the same reading the
-// rest of the set puts here.
-const host = (() => {
+// Which sky is being handed over, and it is not the relay.
+//
+// The relay is one socket upstream and however many readers; naming it here
+// said `node keraunos-relay`, which is our own hostname read back to us and
+// tells you nothing about where the strikes are from. Blitzortung's network is
+// a set of nodes — ws1, ws7, ws8 — and which one the relay is on is a real
+// reading that changes when it reconnects. It arrives in the relay's control
+// frame, so it is not known until one turns up.
+//
+// Pointed straight at the upstream in dev there is no relay to ask, and the
+// URL already names the node, so its first label stands in.
+const fallback = (() => {
   try {
     return FEED ? new URL(FEED).hostname.split(".")[0] : null;
   } catch {
@@ -94,13 +99,20 @@ const host = (() => {
   }
 })();
 
-$("node").textContent = host ? `node ${host}` : "no node";
+let host = HELLO ? fallback : null;
+const nodeEl = $("node");
+const showNode = () => (nodeEl.textContent = host ? `node ${host}` : "no node");
+showNode();
 
 // Silent while it is simply working: a state worth naming is a state that is not
 // live, which is what makes the named ones read at a glance.
 const NAMED = { connecting: "linking", down: "no signal", error: "link error" };
 
-function link(phase) {
+function link(phase, node) {
+  if (node !== undefined) {
+    host = node;
+    showNode();
+  }
   pip.dataset.phase = phase;
   const named = NAMED[phase];
   stateEl.textContent = named ? `[ ${named} ]` : "";
@@ -372,8 +384,17 @@ const STREAK = 3;
 // exists to absorb the false failures a live stream throws, and the surrogate is
 // deterministic, so holding its red back for three evaluations would only delay
 // the one thing it is there to show.
-const live = { fails: new Map(), history: new Map(), streak: STREAK };
-const rigged = { fails: new Map(), history: new Map(), streak: 1 };
+//
+// It draws no trace either, and that is the same fact twice. controlRigged(n)
+// builds the same counter from the same n every time it is called, so every
+// evaluation of the surrogate grades bits identical to the last one's; chi2 and
+// serial are saturated besides, at 1.000 and 0.000 for every length from 29,000
+// bits to a full pool. Twenty-four points of that is one number drawn twenty-four
+// times, and a flat line at the clamp reads as a broken chart rather than as a
+// stream that fails the same way every time. The surrogate is a comparison, not
+// a history, so it is shown as one.
+const live = { fails: new Map(), history: new Map(), streak: STREAK, trace: true };
+const rigged = { fails: new Map(), history: new Map(), streak: 1, trace: false };
 
 const MARKS = { pass: "ok", fail: "fail", waiting: "—" };
 
@@ -384,17 +405,21 @@ function renderTests(host, results, state) {
       state.fails.set(r.name, streak);
       const shown = r.verdict === "fail" && streak < state.streak ? "pass" : r.verdict;
 
-      const h = state.history.get(r.name) ?? [];
-      h.push(headroom(r));
-      if (h.length > 24) h.shift();
-      state.history.set(r.name, h);
+      let chart = '<span class="spark"></span>';
+      if (state.trace) {
+        const h = state.history.get(r.name) ?? [];
+        h.push(headroom(r));
+        if (h.length > 24) h.shift();
+        state.history.set(r.name, h);
+        chart = `<svg class="spark" viewBox="0 0 ${SPARK_W} ${SPARK_H}" aria-hidden="true">
+          <line class="floor" x1="0" y1="${sparkY(0)}" x2="${SPARK_W}" y2="${sparkY(0)}" />
+          ${trace(h)}
+        </svg>`;
+      }
 
       return `<div class="test" data-verdict="${shown}" title="${r.detail}">
         <span class="name">${r.name}</span>
-        <svg class="spark" viewBox="0 0 ${SPARK_W} ${SPARK_H}" aria-hidden="true">
-          <line class="floor" x1="0" y1="${sparkY(0)}" x2="${SPARK_W}" y2="${sparkY(0)}" />
-          ${trace(h)}
-        </svg>
+        ${chart}
         <span class="verdict">${MARKS[shown]}</span>
         <span class="p">${Number.isNaN(r.p) ? "·" : r.p.toFixed(3)}</span>
       </div>`;
@@ -652,6 +677,15 @@ const SAYS = {
   error: "link error",
 };
 
+/** What the line says about a link that is up. A relay with no upstream of its
+ *  own is the one state that looks fine from here and is not: our socket is
+ *  open, nothing is arriving, and the difference matters. */
+function saying(status) {
+  if (status.phase === "live") return `receiving from ${host ?? "the relay"}`;
+  if (status.live === false) return "the relay has no link";
+  return SAYS[status.phase] ?? status.phase;
+}
+
 if (!FEED) {
   link("down");
   report("no feed configured: append ?feed=wss://…");
@@ -659,9 +693,9 @@ if (!FEED) {
   createSource({
     url: FEED,
     hello: HELLO,
-    onStatus: ({ phase }) => {
-      link(phase);
-      report(phase === "live" ? `receiving from ${host}` : (SAYS[phase] ?? phase));
+    onStatus: (status) => {
+      link(status.phase, status.node);
+      report(saying(status));
     },
     onFrame: (_f, accepted) => {
       seen++;

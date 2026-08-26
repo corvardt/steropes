@@ -295,11 +295,40 @@ match is exact, so `https://entropic.corvardt.com/` is silently refused. Until
 the origin is on the list the handshake is rejected with a 403 and the bezel
 sits on `[ linking ]`, which looks exactly like a relay that is down.
 
-**The unfurl.** There is no `og.png` and no `apple-touch-icon.png` yet. The
-favicon is an inline SVG in the document and needs nothing, but a pasted link
-currently previews as a grey box with a domain in it. Keraunos captures its card
-from the running instrument rather than drawing one, so the picture cannot drift
-from what the page actually looks like; the same is worth doing here.
+**Nothing else.** The icons and the unfurl card ship with the repository.
+
+### The card
+
+`og.png` is captured from the running instrument rather than drawn:
+
+```sh
+npm run shots                    # 1200x630 from production, after a 2min soak
+npm run shots -- --soak 420      # long enough for chi2 to stop waiting
+npm run shots -- --url http://localhost:8080/?feed=wss://…
+```
+
+It has to be regenerable, because what it shows is the weather on the morning it
+was taken. A screenshot pasted in once decays quietly — the palette moves, a
+readout is renamed, a badge gains a column — and the card keeps advertising an
+instrument that no longer exists.
+
+The soak is the whole difficulty. A page grabbed on load is an empty grid and a
+fair picture of nothing, so the shot waits: about 20s before the walk has been
+anywhere, 40s before monobit, runs and serial have their 500 bits, and around
+four minutes before chi2 has the 1,280 bytes it needs to stop reporting that it
+is still counting.
+
+Keraunos does this with puppeteer-core. This project has no dependencies and
+says so on the tin, so `tools/shots.mjs` speaks CDP over the WebSocket Node has
+had since v22 — the same one the rest of the tooling already leans on. Sixty
+lines, and nothing to install.
+
+The icons are in `/home/crv/Documents/icons` with the rest of the set's, and
+carry its grammar: a dark tile with its own ground, the bloom, a hairline edge,
+one figure. Entropic's is the only one drawn in both inks, because it is the
+only page whose subject is a history and an arrival at once — the trail at rest
+ink under the decay rule, the head at the strike white Keraunos and Tyche are
+entitled to.
 
 ## Layout
 
@@ -323,6 +352,9 @@ tools/        check.mjs   npm test
               smoke.mjs   npm run smoke
               analyse.mjs npm run analyse
               harvest.mjs npm run harvest
+              shots.mjs   npm run shots, the unfurl card from the real thing
+glyph.svg     the favicon. apple-touch-icon.png is the same, squared and bled
+og.png        the card. Captured, not drawn; see Deploying
 fixtures/     strikes.jsonl   3,738 deduplicated strikes, the sample every
                               figure above was measured against
 plan.md       the build order, and the record of what changed and why

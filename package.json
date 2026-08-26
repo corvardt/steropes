@@ -8,6 +8,7 @@
     "smoke": "node tools/smoke.mjs",
     "harvest": "node tools/harvest.mjs",
     "analyse": "node tools/analyse.mjs",
+    "shots": "node tools/shots.mjs",
     "dev": "python3 -m http.server 8080"
   }
 }

@@ -3,16 +3,47 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Entropic: random numbers drawn from the sky</title>
+    <title>Entropic</title>
     <meta
       name="description"
       content="True random numbers harvested from lightning, verified live in the browser."
     />
-    <!-- The walk itself: a lattice staircase, which is the shape the page draws. -->
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 14h3v-3h3V8h3V5h3' fill='none' stroke='%23fff' stroke-width='1.5'/%3E%3C/svg%3E"
+    <!-- The walk, drawn as the rest of the set draws its subject: one figure on
+         a dark tile that carries its own ground. It replaces a data URI of a
+         monotonic staircase, which was a tidy shape and the wrong one — a walk
+         that only ever goes up and right is the one thing a random walk never
+         does. This one turns back on itself, and its trail carries the same
+         decay the page applies to the real one. -->
+    <link rel="icon" type="image/svg+xml" href="/glyph.svg" />
+    <!-- Saved to a home screen, iOS ignores the favicon and will screenshot the
+         page unless it is handed one of these. It masks its own rounded corners,
+         so this one is drawn square and full bleed with the walk held clear of
+         the crop; rounding it here would round it twice and show void at the
+         corners. -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- What a pasted link renders as. The card is the whole first impression
+         for a project that spreads by link, and without it the preview is a grey
+         box with a domain in it. Captured from the running instrument by
+         `npm run shots`, not drawn, so it cannot claim a page that does not
+         exist: what is in it is the sky on the morning it was taken. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://entropic.corvardt.com/" />
+    <meta property="og:title" content="Entropic: random numbers drawn from the sky" />
+    <meta
+      property="og:description"
+      content="True random numbers harvested from lightning, tested continuously in your browser and showing the working. No account, no key, nothing stored."
     />
+    <meta property="og:image" content="https://entropic.corvardt.com/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="A random walk drawn on a black tube, one step per lightning strike, beside a panel counting the bits it has collected and grading them against four statistical tests."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:creator" content="@corvardt" />
+    <meta name="twitter:image" content="https://entropic.corvardt.com/og.png" />
     <!-- The relay. Deployment configuration, so it lives in the deployed
          artifact rather than compiled into a module: there is no build step
          here, so a `.env` would have nothing to substitute it into.
