@@ -411,6 +411,15 @@ a.ctl:hover {
   padding: 0.4rem 0.5rem;
 }
 
+.bar-range select {
+  font: inherit;
+  color: var(--c-text);
+  background: var(--c-panel);
+  border: 1px solid var(--c-line);
+  padding: 0.4rem 0.5rem;
+  cursor: pointer;
+}
+
 .bar-range input:focus-visible {
   border-color: var(--c-dim);
 }
@@ -519,6 +528,13 @@ a.ctl:hover {
 .prov {
   color: var(--c-dim);
   margin: 0.875rem 0 0;
+}
+
+/* While the shutter is open the reading leads the card rather than footnoting
+   it, so it takes the top margin off and the emphasis of a live value. */
+.prov.open {
+  margin: 0.75rem 0 0;
+  color: var(--c-text);
 }
 
 /* ── Waiting ──────────────────────────────────────────────────────────────────
@@ -743,6 +759,66 @@ span.spark {
 .stream b {
   color: var(--c-strike);
   font-weight: 400;
+}
+
+/* A second heading inside a block, for a readout that qualifies the one above
+   it rather than standing on its own. */
+.label.sub {
+  margin-top: 0.875rem;
+}
+
+/* ── Derivation ───────────────────────────────────────────────────────────────
+   A fix and the byte taken off it, four columns wide. Tabular figures and fixed
+   columns so the decimal points line up down the list: these rows exist to be
+   compared with each other, and a column that reflows on every arrival is one
+   nobody can read while it is moving. */
+.derive {
+  margin-top: 0.5rem;
+  list-style: none;
+  font-size: 10px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.derive li {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr auto;
+  /* The fix and the byte it became are the comparison this list exists for, so
+     they get more air between them than the two halves of the fix do. */
+  gap: 0 0.75rem;
+  color: var(--c-dim);
+}
+
+.d-t {
+  color: var(--c-land);
+}
+
+.d-pos {
+  text-align: right;
+}
+
+/* Where it lands. The bytes are the product, so they carry the interface's ink
+   while the fix they were taken off sits back a step. */
+.d-b {
+  color: var(--c-text);
+  letter-spacing: 0.06em;
+}
+
+/* Thrown away by the spacing rule, and shown being thrown away. */
+.derive .cut,
+.derive .cut .d-b {
+  color: var(--c-land);
+}
+
+.d-cut {
+  grid-column: 2 / 4;
+  text-align: right;
+}
+
+/* The newest row arrives at full white and settles, the same decay every other
+   arrival on this page follows. */
+.derive .settle .d-b {
+  animation: settle 1.4s ease-out;
 }
 
 /* ── History ──────────────────────────────────────────────────────────────────

@@ -12,18 +12,20 @@
 const W = 1000;
 const H = 1240;
 
-/** Draw the plate. `ink` resolves a palette token so this matches the page. */
-export function plate(bytes, provenance, ink) {
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext("2d");
-
-  ctx.fillStyle = ink("--c-void");
-  ctx.fillRect(0, 0, W, H);
-
-  // Two bits a step, four directions. Identical to the hero, so a plate is a
-  // fragment of the same drawing rather than a different idea.
+/**
+ * The figure, shared by every plate this file prints.
+ *
+ * Two bits a step, four directions, and the view derived from the extent of the
+ * path — identical to the hero, so a plate is a fragment of the same drawing
+ * rather than a different idea. It was inlined in `plate` until the exposure
+ * needed the same walk from a different number of bytes, at which point a
+ * second copy would have been two drawings free to drift apart.
+ *
+ * The line thins as the walk gets long. A five-minute exposure is thousands of
+ * steps in the box a hundred and twenty-eight were drawn in, and at a stroke of
+ * 3 it fills to a solid block; below 1 it stops being a line at all.
+ */
+function drawWalk(ctx, bytes, box, ink) {
   const STEPS = [
     [0, -1],
     [1, 0],
@@ -50,7 +52,6 @@ export function plate(bytes, provenance, ink) {
     maxY = Math.max(maxY, p.y);
   }
 
-  const box = { x: 110, y: 110, w: W - 220, h: 780 };
   const s = Math.min(box.w / Math.max(1, maxX - minX), box.h / Math.max(1, maxY - minY));
   const ox = box.x + box.w / 2 - ((minX + maxX) / 2) * s;
   const oy = box.y + box.h / 2 - ((minY + maxY) / 2) * s;
@@ -58,7 +59,7 @@ export function plate(bytes, provenance, ink) {
 
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
-  ctx.lineWidth = 3;
+  ctx.lineWidth = Math.max(1, Math.min(3, 17 / pts.length ** 0.35));
   ctx.strokeStyle = ink("--c-text");
   ctx.beginPath();
   ctx.moveTo(...px(pts[0]));
@@ -74,6 +75,18 @@ export function plate(bytes, provenance, ink) {
   ctx.beginPath();
   ctx.arc(...px(pts[pts.length - 1]), 7, 0, Math.PI * 2);
   ctx.fill();
+}
+
+/** Draw the plate. `ink` resolves a palette token so this matches the page. */
+export function plate(bytes, provenance, ink) {
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = ink("--c-void");
+  ctx.fillRect(0, 0, W, H);
+  drawWalk(ctx, bytes, { x: 110, y: 110, w: W - 220, h: 780 }, ink);
 
   // ── caption ────────────────────────────────────────────────────────────────
   const hex = bytes.map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -112,6 +125,61 @@ export function plate(bytes, provenance, ink) {
   ctx.fillText("256 bits from lightning", W - 110, 1078);
   ctx.textAlign = "left";
 
+  return { canvas, hex };
+}
+
+/**
+ * An exposure plate: a window of weather rather than a fixed number of bits.
+ *
+ * Same figure, different caption, and the difference is the whole point of it.
+ * The artwork prints its seed in full because 32 bytes fit on a page and the
+ * claim is "this image is what these bits make", checkable from the caption
+ * alone. An exposure runs to hundreds of bytes and cannot make that claim on
+ * paper, so it makes a different one: the window it was open, what fell into it,
+ * and the rate that implies. Two plates of the same length and different density
+ * are a legible reading of two different skies.
+ *
+ * The bytes are still handed back whole by `copy the seed`, so nothing is
+ * actually lost — only moved off the picture and onto the clipboard.
+ */
+export function exposurePlate(bytes, provenance, span, ink) {
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = ink("--c-void");
+  ctx.fillRect(0, 0, W, H);
+  drawWalk(ctx, bytes, { x: 110, y: 110, w: W - 220, h: 860 }, ink);
+
+  const mono = (size, weight = 400) =>
+    `${weight} ${size}px "IBM Plex Mono", ui-monospace, monospace`;
+  const clock = (t) => new Date(Number(t / 1000000n)).toISOString().replace("T", " ").slice(0, 19);
+
+  ctx.fillStyle = ink("--c-line");
+  ctx.fillRect(110, 1010, W - 220, 1);
+
+  ctx.fillStyle = ink("--c-dim");
+  ctx.font = mono(20);
+  ctx.fillText("ENTROPIC", 110, 1060);
+  ctx.textAlign = "right";
+  ctx.fillText(`${Math.round(span / 1000)}s exposure`, W - 110, 1060);
+  ctx.textAlign = "left";
+
+  // The reading. Density is the weather, so the rate is printed beside the
+  // count rather than left to be worked out from it.
+  const rate = span > 0 ? (provenance.strikes / (span / 1000)).toFixed(1) : "0.0";
+  ctx.fillStyle = ink("--c-text");
+  ctx.font = mono(26);
+  ctx.fillText(`${provenance.strikes} strikes · ${rate}/s · ${bytes.length} bytes`, 110, 1116);
+
+  ctx.fillStyle = ink("--c-dim");
+  ctx.font = mono(18);
+  if (provenance.from) {
+    ctx.fillText(`${clock(provenance.from)} → ${clock(provenance.to)} UTC`, 110, 1158);
+  }
+
+  const hex = bytes.map((b) => b.toString(16).padStart(2, "0")).join("");
   return { canvas, hex };
 }
 

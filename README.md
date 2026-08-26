@@ -177,6 +177,21 @@ The **artwork** is a walk from its own 256 bits, the same form the page draws
 large, with the seed printed underneath in full so the plate can be redrawn from
 its own caption and checked.
 
+The **exposure** is the only one that is a window rather than an allocation.
+Every other draw asks how many bytes it needs and stops, so the wait is a side
+effect; this one takes a duration — one, five or fifteen minutes — and the plate
+is whatever fell into it. That makes the time the subject rather than a cost:
+two exposures of the same length differ because the weather did, and a quiet
+night and a storm come out as visibly different pictures rather than the same
+picture arriving at different speeds. The caption carries the window, the strike
+count and the rate that implies, so the plate is a reading as well as a figure.
+Closing the shutter early keeps what has arrived, because a fifteen-minute
+window nobody can get out of is a window nobody will open.
+
+A draw outlives its card. Dismissing one leaves it collecting, and the top row
+of the history is the way back to it; a long exposure that could only be watched
+was one you had to sit in front of.
+
 Every draw lands in **drawn this session**, newest first, twenty-four deep. A row
 is what was asked, what came back and what it cost in strikes, and clicking one
 reopens it. The entries hold the value and its provenance rather than a rendered
@@ -201,6 +216,26 @@ It is also the only colour on the site. The rule everywhere else is that white
 is reserved and the lone amber means a failing test, so no part of the interface
 may be colourful. A blockie is not interface: it is output, it sits in a bordered
 plate, and its hues are themselves lightning.
+
+## Showing the working
+
+Three readouts exist so the page's claims can be checked rather than believed.
+
+**Derivation** prints the step everything rests on: the solved fix, and the byte
+taken off it. `round(|degrees| × 1e6) & 0xff`, one row per frame, so the claim
+that the low byte of a position is solver noise can be confirmed against the raw
+stream above it with a calculator. Rejected frames stay in the list rather than
+disappearing from it — a filter that discards a quarter of what arrives is
+easier to believe when the discarding is visible, and the acceptance figure a
+few lines up is otherwise just a number.
+
+**Raw stream** is the pool's newest bytes, in the order they landed, newest in
+the reserved white.
+
+**Conditioned** is the same bytes through SHA-256 block extraction, 64 in and 32
+out. Both are shown because the honest claim is that the source passes every
+test *unconditioned*; the extractor is a safety net, and a net described but
+never shown is a net nobody can weigh. It is not what rescues the numbers.
 
 ## Honest limits
 
@@ -337,7 +372,8 @@ src/          source.js   the socket, the dedup filter, extraction
               pool.js     4KB ring of raw bytes, SHA-256 extraction
               tests.js    the four tests, and the only copy of them
               spark.js    the badge trace: headroom, not p
-              draw.js     the suspending byte reader, unbiased integers
+              draw.js     the suspending byte reader, unbiased integers, and
+                          the exposure window
               art.js      the artwork plate
               blockie.js  the identicon, from Tyche's tile rules
               ui.js       the bezels, the walk, the gauges, the badges, the

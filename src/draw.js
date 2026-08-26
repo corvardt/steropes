@@ -135,6 +135,57 @@ export async function seed(reader, bytes = 32) {
 // waiting readout treats it as one: rejection sampling can always ask for more,
 // and a progress bar that quietly stalls at 100% would be worse than one that
 // admits it is still going.
+/**
+ * An exposure: not a draw of a fixed size, but everything the sky gives in a
+ * fixed window.
+ *
+ * Every other draw here asks how many bytes it needs and stops when it has
+ * them, so the wait is a side effect of the artefact. This inverts that. The
+ * window is chosen first and the artefact is whatever fell into it, which makes
+ * the duration the subject rather than a cost: two exposures of the same length
+ * differ because the weather did, and a quiet night and a storm are legible as
+ * different pictures rather than as the same picture arriving at different
+ * speeds.
+ *
+ * `onTick` is handed the bytes so far, so the plate can assemble while it fills.
+ * `stop` closes the window early and keeps what has already arrived — an
+ * exposure cut short is a shorter exposure, not a failed one, which is the one
+ * thing that lets a fifteen-minute window be offered at all.
+ */
+export function expose(reader, ms, onTick) {
+  const bytes = [];
+  let running = true;
+  let cut;
+
+  const closed = new Promise((resolve) => {
+    const finish = () => {
+      if (!running) return;
+      running = false;
+      resolve();
+    };
+    const timer = setTimeout(finish, ms);
+    cut = () => {
+      clearTimeout(timer);
+      finish();
+    };
+  });
+
+  (async () => {
+    while (running) {
+      // Suspends until the sky delivers. The window can close while this is
+      // waiting, so the flag is checked again on the other side of the await:
+      // without that, a byte arriving after time was up would be appended to an
+      // array whose caller already has it.
+      const b = await reader.byte();
+      if (!running) break;
+      bytes.push(b);
+      onTick?.(bytes);
+    }
+  })();
+
+  return { stop: cut, done: closed.then(() => bytes) };
+}
+
 export const DRAWS = {
   coin: {
     label: "coin",

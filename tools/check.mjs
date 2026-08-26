@@ -12,7 +12,7 @@ import { readFileSync } from "node:fs";
 import { runAll, controlGood, controlRigged, seeded, MIN_BITS } from "../src/tests.js";
 import { createFilter, lowByte, parseFrame, SPACING_NS } from "../src/source.js";
 import { createPool, toBits, condition } from "../src/pool.js";
-import { createReader, below, between, shuffle, uuid, DECK } from "../src/draw.js";
+import { createReader, below, between, shuffle, uuid, DECK, expose } from "../src/draw.js";
 import { blockie } from "../src/blockie.js";
 import { SPARK_H, headroom, sparkY, trace } from "../src/spark.js";
 
@@ -298,6 +298,43 @@ console.log("\nbadge trace");
   check((broken.match(/<polyline/g) ?? []).length === 2, "a gap in the readings breaks the trace in two");
   check(trace([null, null]) === "", "all-null draws nothing");
   check(trace([1]).includes("<circle"), "a single reading is a point, since a one-point line is invisible");
+}
+
+// ── the exposure ─────────────────────────────────────────────────────────────
+//
+// A window, not an allocation: whatever the sky gave while it was open.
+console.log("\nexposure");
+{
+  const r = createReader();
+  const seen = [];
+  const shot = expose(r, 60, (bytes) => seen.push(bytes.length));
+
+  r.push([1, 2], { t: 1n, lat: 0, lon: 0 });
+  await new Promise((ok) => setTimeout(ok, 10));
+  r.push([3, 4], { t: 2n, lat: 0, lon: 0 });
+
+  const bytes = await shot.done;
+  check(bytes.join(",") === "1,2,3,4", `keeps everything inside the window, got [${bytes}]`);
+  check(seen.join(",") === "1,2,3,4", "and reports each arrival as it lands, so a plate can fill");
+
+  // The window is shut. A strike after it must not reach an array its caller
+  // is already holding.
+  r.push([9, 9], { t: 3n, lat: 0, lon: 0 });
+  await new Promise((ok) => setTimeout(ok, 20));
+  check(bytes.length === 4, "and nothing arriving after it is closed gets in");
+}
+{
+  // Cut short is a shorter exposure, not a failed one. Without this a
+  // fifteen-minute window could not honestly be offered.
+  const r = createReader();
+  const shot = expose(r, 60000, null);
+  r.push([7, 8], { t: 1n, lat: 0, lon: 0 });
+  await new Promise((ok) => setTimeout(ok, 10));
+  const t0 = Date.now();
+  shot.stop();
+  const bytes = await shot.done;
+  check(bytes.join(",") === "7,8", "stopping early keeps what had already arrived");
+  check(Date.now() - t0 < 500, "and resolves at once rather than serving out the window");
 }
 
 console.log(failures ? `\n${failures} failed\n` : "\nall passed\n");

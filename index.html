@@ -139,6 +139,18 @@
 
         <div class="bar">
           <div class="bar-draws" id="draw-buttons"></div>
+          <!-- Not a draw of a fixed size but a window: the plate is whatever
+               the sky gives while it is open, so the duration is the subject. -->
+          <form class="bar-range" id="expose-form">
+            <label for="expose-mins">expose</label>
+            <select id="expose-mins">
+              <option value="1">1 min</option>
+              <option value="5" selected>5 min</option>
+              <option value="15">15 min</option>
+            </select>
+            <button type="submit">open</button>
+          </form>
+
           <form class="bar-range" id="range-form">
             <label for="range-min">from</label>
             <input id="range-min" type="number" value="1" step="1" inputmode="numeric" />
@@ -216,6 +228,25 @@
         <div class="block">
           <div class="label"><span>raw stream</span><span>newest first</span></div>
           <p class="stream" id="stream"></p>
+
+          <!-- The safety net, shown rather than described. The pool holds raw
+               bytes and puts them through SHA-256 block extraction on the way
+               out, 64 in and 32 out, and the README has always said both streams
+               could be shown while the page showed one. The source passes every
+               test unconditioned; this is here so that claim can be read against
+               the thing it is a claim about, not to rescue it. -->
+          <div class="label sub"><span>conditioned</span><span>sha-256, 64&#8594;32</span></div>
+          <p class="stream" id="cooked"></p>
+        </div>
+
+        <!-- The step between the sky and the hex above, which the page asserted
+             and never showed. Every claim it makes rests on the low byte of a
+             position being solver noise, so here is the position and here is the
+             byte, side by side, for anyone who would rather check than believe:
+             the last two hex digits of round(|degrees| x 1e6). -->
+        <div class="block">
+          <div class="label"><span>derivation</span><span>lat lon &#8594; bytes</span></div>
+          <ol class="derive" id="derive"></ol>
         </div>
 
         <!-- What this session has asked the sky, newest first. Held in the tab

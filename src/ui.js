@@ -6,10 +6,10 @@
 // it in step 4.
 
 import { createSource } from "./source.js";
-import { createPool, toBits } from "./pool.js";
+import { createPool, toBits, condition, BLOCK_BYTES } from "./pool.js";
 import { runAll, MIN_BITS, CHI2_MIN_BYTES, controlRigged } from "./tests.js";
-import { createReader, DRAWS, rangeDraw } from "./draw.js";
-import { plate, download } from "./art.js";
+import { createReader, DRAWS, rangeDraw, expose } from "./draw.js";
+import { plate, exposurePlate, download } from "./art.js";
 import { render as renderBlockie, blockieDraw } from "./blockie.js";
 import { SPARK_W, SPARK_H, headroom, sparkY, trace } from "./spark.js";
 import { apply, current, followSystem } from "./theme.js";
@@ -361,6 +361,72 @@ function readouts() {
       return i === 0 ? `<b>${hex}</b>` : hex;
     })
     .join(" ");
+
+  // The extractor, run on the newest whole block. Fired and forgotten: it is a
+  // readout, and one that resolves after the next tick has already redrawn the
+  // line is simply a readout that missed its turn.
+  if (bytes.length >= BLOCK_BYTES) {
+    condition(bytes.slice(-BLOCK_BYTES)).then((out) => {
+      $("cooked").textContent = [...out]
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join(" ");
+    });
+  }
+}
+
+// ── derivation ───────────────────────────────────────────────────────────────
+//
+// The step the page rested everything on and never showed.
+//
+// The claim is that the low byte of a solved position is noise the network
+// cannot help producing, far below the precision it can actually fix a strike
+// to. That is an assertion until you can see a strike and the byte it became in
+// the same row, so this prints both: the fix, and round(|degrees| x 1e6) & 0xff
+// taken off it. The hex above is where these end up, in order.
+//
+// Rejected frames are kept in the list rather than dropped from it. Acceptance
+// is a headline figure a few lines up, and a filter that throws away three
+// frames in four is easier to believe when the throwing away is visible.
+
+const DERIVE_ROWS = 7;
+const derived = [];
+const deriveEl = $("derive");
+
+const deg = (v) => (v < 0 ? "" : "+") + v.toFixed(6);
+const hex2 = (b) => b.toString(16).padStart(2, "0");
+const hhmmss = (t) => new Date(Number(t / 1000000n)).toISOString().slice(11, 19);
+
+function renderDerived() {
+  deriveEl.innerHTML = derived
+    .map(
+      (d, i) =>
+        `<li class="${d.kept ? "" : "cut"}${i === 0 ? " settle" : ""}">
+          <span class="d-t">${d.at}</span>
+          ${
+            d.kept
+              ? `<span class="d-pos">${d.lat}</span><span class="d-pos">${d.lon}</span>
+                 <span class="d-b">${d.bytes}</span>`
+              : `<span class="d-pos d-cut" colspan="2">duplicate, inside 25.6\u00b5s</span><span class="d-b">\u2014</span>`
+          }
+        </li>`
+    )
+    .join("");
+}
+
+function noteFrame(frame, bytes) {
+  derived.unshift(
+    bytes
+      ? {
+          kept: true,
+          at: hhmmss(frame.t),
+          lat: deg(frame.lat),
+          lon: deg(frame.lon),
+          bytes: `${hex2(bytes[0])} ${hex2(bytes[1])}`,
+        }
+      : { kept: false, at: hhmmss(frame.t) }
+  );
+  if (derived.length > DERIVE_ROWS) derived.pop();
+  renderDerived();
 }
 
 // Strikes per second over a rolling half-minute, so the figure settles instead
@@ -469,19 +535,38 @@ let draw = null;
 
 const card = $("card");
 const out = $("draw-out");
-const buttons = () => document.querySelectorAll(".bar button, .bar input");
+const buttons = () => document.querySelectorAll(".bar button, .bar input, .bar select");
 
 const clock = (t) => new Date(Number(t / 1000000n)).toISOString().slice(11, 19);
 
+/** Closing is dismissing the card, never abandoning the draw.
+ *
+ *  They used to be the same act by accident: the card could be closed mid-draw
+ *  and the draw carried on into a hidden element, so the answer was written
+ *  somewhere nobody could see and the only way back was to lose it. The draw
+ *  outlives its card now, and the history's live row is the way back to it. */
 function closeCard() {
   card.hidden = true;
+  renderHistory();
+}
+
+/** Put the card back exactly as it was. Nothing is rebuilt: closing only hid
+ *  it, so an exposure that has been assembling behind it is still assembling
+ *  into the same canvas and simply becomes visible again. */
+function reopenCard() {
+  card.hidden = false;
+  $("card-close").focus();
 }
 
 /** The wait, reported rather than hidden. It is the instrument doing the one
  *  thing that makes its output worth having, so it says what it is waiting for
  *  and roughly how long that should take at the rate the sky is running. */
 function waiting() {
-  if (!draw) return;
+  // An exposure paints its own card, and this runs on every arrival: left
+  // ungated it stamped a progress bar over the plate as fast as the plate could
+  // draw itself, and reported "70 of ~1 strike" doing it, because a window has
+  // no target count to be a fraction of.
+  if (!draw || draw.spec.kind === "exposure") return;
   const have = draw.reader.provenance().strikes;
   const need = draw.spec.strikes ?? 1;
   const perSec = recent.length / 30;
@@ -511,7 +596,15 @@ function present(spec, value, prov, again) {
   const actions = document.createElement("div");
   actions.className = "actions";
 
-  if (spec.kind === "blockie") {
+  if (spec.kind === "exposure") {
+    // Redrawn from its own bytes, like every other plate here, so a recalled
+    // exposure is the same picture rather than a cached one.
+    const { canvas, hex } = exposurePlate(value, prov, spec.held ?? spec.span, ink);
+    canvas.className = "plate";
+    out.append(canvas);
+    actions.append(action("save the plate", () => download(canvas, `entropic-exposure-${hex.slice(0, 8)}.png`)));
+    actions.append(action("copy the seed", () => navigator.clipboard?.writeText(hex)));
+  } else if (spec.kind === "blockie") {
     const { canvas, text } = renderBlockie(value, prov, ink);
     canvas.className = "plate";
     out.append(canvas);
@@ -555,6 +648,7 @@ function present(spec, value, prov, again) {
  *  worth printing, so it cites what it cost instead, which is the thing the
  *  status line is for. */
 function summarise(spec, value) {
+  if (spec.kind === "exposure") return `${value.length} bytes`;
   if (spec.kind === "art" || spec.kind === "blockie") return "drawn";
   if (spec.kind === "deck") return `${value[0]} off the top`;
   return String(value);
@@ -577,11 +671,25 @@ const history = [];
 const historyEl = $("history");
 
 function renderHistory() {
-  $("drawn-count").textContent = history.length
+  // A draw in flight is not held yet, and it is not nothing either. Counting
+  // only the finished ones put "none yet" directly above a row saying "open".
+  const held = history.length
     ? `${history.length}${history.length === HISTORY_DEPTH ? "+" : ""} held`
-    : "none yet";
+    : "";
+  const open = draw ? "1 open" : "";
+  $("drawn-count").textContent = [held, open].filter(Boolean).join(" · ") || "none yet";
 
-  historyEl.innerHTML = history
+  // The draw in flight, at the top, so a card that has been dismissed is not a
+  // draw that has been lost. It is the only row that is not yet an entry.
+  const live = draw
+    ? `<li><button type="button" data-at="live">
+        <span class="log-what">${draw.spec.label}</span>
+        <span class="log-value">${card.hidden ? "open" : "on screen"}</span>
+        <span class="log-cost">\u2026</span>
+      </button></li>`
+    : "";
+
+  historyEl.innerHTML = live + history
     .map(
       (h, i) => `<li><button type="button" data-at="${i}">
         <span class="log-what">${h.spec.label}</span>
@@ -603,8 +711,12 @@ function remember(spec, value, prov) {
 // have to re-bind anything.
 historyEl.addEventListener("click", (e) => {
   const at = e.target.closest("button")?.dataset.at;
-  // Not while a draw is in flight: the card belongs to the sky until it answers.
-  if (at === undefined || draw) return;
+  if (at === undefined) return;
+  // The row for the draw that is still running: bring its card back rather than
+  // rendering anything, because it is still being drawn into.
+  if (at === "live") return reopenCard();
+  // A finished entry cannot take the card while the sky still has it.
+  if (draw) return;
   const h = history[Number(at)];
   card.hidden = false;
   $("draw-label").textContent = `${h.spec.label} · drawn earlier`;
@@ -617,6 +729,7 @@ renderHistory();
 async function begin(spec) {
   if (draw) return;
   draw = { reader: createReader(), spec };
+  renderHistory();
 
   card.hidden = false;
   $("draw-label").textContent = spec.label;
@@ -637,8 +750,112 @@ async function begin(spec) {
 
   remember(spec, value, prov);
   present(spec, value, prov, () => begin(spec));
-  $("card-close").focus();
+  if (!card.hidden) $("card-close").focus();
 }
+
+// ── the exposure ─────────────────────────────────────────────────────────────
+//
+// The one draw that is a window rather than an allocation, and the only one long
+// enough that the wait has to be worth watching. A progress bar for fifteen
+// minutes is a page doing nothing with a rectangle on it, so the plate assembles
+// instead: every strike that lands redraws it, and what you are waiting on is
+// the picture itself getting longer.
+//
+// Redrawing a 1000x1240 canvas per strike sounds worse than it is. At the rates
+// this feed runs that is a few times a second, against a walk the page is
+// already redrawing sixty times a second beside it.
+
+async function beginExposure(minutes) {
+  if (draw) return;
+  const span = minutes * 60000;
+  const reader = createReader();
+  const spec = { label: `${minutes} min exposure`, kind: "exposure", span };
+  draw = { reader, spec };
+  renderHistory();
+
+  card.hidden = false;
+  $("draw-label").textContent = spec.label;
+  for (const b of buttons()) b.disabled = true;
+
+  // Reading, control, then the picture. The other draws put their actions under
+  // the result because by then the result is the point; this one is running, and
+  // the shutter is the only control a fifteen-minute window has. Below a plate
+  // that is 54vh tall it was the first thing off the bottom of a short window,
+  // which is a stop button you have to scroll to find.
+  out.innerHTML = "";
+  const note = document.createElement("p");
+  note.className = "prov open";
+  out.append(note);
+
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  const opened = Date.now();
+  let shot;
+  // Closing early keeps what has arrived, so this is a control and not an
+  // abandon: a fifteen-minute window nobody can get out of is a window nobody
+  // will open.
+  actions.append(action("close the shutter", () => shot.stop()));
+  out.append(actions);
+
+  const canvas = document.createElement("canvas");
+  canvas.className = "plate";
+  out.append(canvas);
+
+  const paint = (bytes) => {
+    const prov = reader.provenance();
+    const held = Math.min(span, Date.now() - opened);
+    const { canvas: drawn } = exposurePlate(bytes, prov, held, ink);
+    canvas.width = drawn.width;
+    canvas.height = drawn.height;
+    canvas.getContext("2d").drawImage(drawn, 0, 0);
+    const left = Math.max(0, Math.round((span - (Date.now() - opened)) / 1000));
+    note.textContent = `open · ${prov.strikes} strike${prov.strikes === 1 ? "" : "s"} · ${left}s left`;
+  };
+  paint([]);
+
+  let exposed = [];
+  shot = expose(reader, span, (bytes) => {
+    exposed = bytes;
+    paint(bytes);
+  });
+
+  // The countdown runs on its own clock. With a quiet sky nothing arrives for
+  // seconds at a time, and a readout that only moves when a strike does cannot
+  // be told from one that has stopped.
+  const ticking = setInterval(() => paint(exposed), 1000);
+
+  const bytes = await shot.done;
+  clearInterval(ticking);
+  const prov = reader.provenance();
+  draw = null;
+  for (const b of buttons()) b.disabled = false;
+
+  const held = Math.min(span, Date.now() - opened);
+  const { canvas: final, hex } = exposurePlate(bytes, prov, held, ink);
+  canvas.getContext("2d").drawImage(final, 0, 0);
+
+  note.className = "prov";
+  actions.innerHTML = "";
+  actions.append(action("save the plate", () => download(final, `entropic-exposure-${hex.slice(0, 8)}.png`)));
+  actions.append(action("copy the seed", () => navigator.clipboard?.writeText(hex)));
+  actions.append(action("expose again", () => beginExposure(minutes)));
+
+  // Kept on the spec so the history can redraw the plate with the window it was
+  // actually open, not the one that was asked for: a shutter closed early makes
+  // a shorter exposure and the caption has to say so.
+  spec.held = held;
+
+  const rate = held > 0 ? (prov.strikes / (held / 1000)).toFixed(1) : "0.0";
+  note.textContent = `${prov.strikes} strikes over ${Math.round(held / 1000)}s · ${rate}/s · ${bytes.length} bytes`;
+  remember(spec, bytes, prov);
+  report(`${spec.label}: ${prov.strikes} strikes · ${bytes.length} bytes`);
+  if (!card.hidden) $("card-close").focus();
+}
+
+$("expose-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  beginExposure(Number($("expose-mins").value));
+});
 
 // Built from the DRAWS table rather than written out, so a new draw is one entry
 // in draw.js and nothing here.
@@ -662,7 +879,7 @@ $("range-form").addEventListener("submit", (e) => {
 
 $("card-close").addEventListener("click", closeCard);
 addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !card.hidden && !draw) closeCard();
+  if (e.key === "Escape" && !card.hidden) closeCard();
   // `t` for the medium, the same key the rest of the set uses. Not while a
   // range is being typed into, where it is just a letter.
   if (e.key === "t" && e.target.tagName !== "INPUT") flip();
@@ -697,17 +914,22 @@ if (!FEED) {
       link(status.phase, status.node);
       report(saying(status));
     },
-    onFrame: (_f, accepted) => {
+    onFrame: (frame, accepted) => {
       seen++;
       if (accepted) {
         kept++;
         recent.push(Date.now());
         if (!still) beat();
+      } else {
+        // The kept ones are listed from onBytes below, where the bytes they
+        // became are actually in hand. This is the only place a rejection is.
+        noteFrame(frame, null);
       }
     },
     onBytes: (bytes, frame) => {
       pool.push(bytes);
       walk(bytes);
+      noteFrame(frame, bytes);
       // Only ever reaches a draw that is already waiting.
       draw?.reader.push(bytes, frame);
       waiting();
