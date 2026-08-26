@@ -457,8 +457,6 @@ glyph.svg     the favicon. apple-touch-icon.png is the same, squared and bled
 og.png        the card. Captured, not drawn; `npm run shots`
 fixtures/     strikes.jsonl   3,738 deduplicated strikes, the sample every
                               figure above was measured against
-plan.md       the build order this was written against, kept as the
-              record of what changed and why
 ```
 
 `tests.js` is imported by both the page and the tools on purpose. It used to be
