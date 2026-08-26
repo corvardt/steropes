@@ -103,8 +103,10 @@
   /* Its own token, not the sweep's. A broad field needs several times the
      alpha of a narrow band to read at all, and the two are tuned by eye on a
      real display — turn this down if the glass starts to look dirty rather
-     than uneven. */
-  --drift: rgba(255, 255, 255, 0.04);
+     than uneven. Held under the sweep now: an unevenness that can be pointed
+     at has stopped being one, and the tube reads better when the drift is
+     something you only notice by its absence. */
+  --drift: rgba(255, 255, 255, 0.024);
 }
 
 /* ── Light ──────────────────────────────────────────────────────────────────
@@ -132,7 +134,7 @@
   --bloom-hot: rgba(0, 0, 0, 0.28);
   /* Stock is not evenly lit either, but paper shows a shadow sooner than a
      tube shows a bloom, so it takes less. */
-  --drift: rgba(0, 0, 0, 0.03);
+  --drift: rgba(0, 0, 0, 0.018);
 }
 
 *,
@@ -266,6 +268,9 @@ body {
   height: 14vh;
   background: linear-gradient(to bottom, transparent, var(--sweep), transparent);
   animation: refresh-sweep 7.5s linear infinite;
+  /* It runs forever over the whole viewport. Promised to the compositor so it
+     moves as a layer instead of repainting the glass beneath it. */
+  will-change: transform;
 }
 
 /* ── Phosphor drift ─────────────────────────────────────────────────────────
@@ -310,6 +315,17 @@ body {
   right: -18vmax;
   animation-name: drift-b;
   animation-duration: 53s;
+}
+
+/* The three pieces of glass a reader can take off, all of them from the same
+   kind of attribute on the root: the medium owns what they look like, and this
+   only says whether the tube is wearing them. The drift is the faintest of the
+   three and the most expensive to composite, so it is the first one worth
+   removing on a machine that is struggling. */
+:root[data-scanlines='off'] .crt-scanlines,
+:root[data-sweep='off'] .crt-sweep,
+:root[data-drift='off'] .crt-drift {
+  display: none;
 }
 
 /* Two vectors rather than one run backwards: parallel blooms read as a single

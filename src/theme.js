@@ -177,10 +177,11 @@ export function applyContrast(name) {
   return next;
 }
 
-/* The two pieces of glass a reader can take off. Attributes rather than a
+/* The three pieces of glass a reader can take off. Attributes rather than a
    class on each layer: the medium owns what they look like, and this only says
-   whether the tube has them. */
-export const GLASS = ["scanlines", "sweep"];
+   whether the tube has them. The drift is the faintest of them and the most
+   expensive to composite, which is why it is worth being able to remove. */
+export const GLASS = ["scanlines", "sweep", "drift"];
 
 export const glass = (part) => recall(part, "on") !== "off";
 
