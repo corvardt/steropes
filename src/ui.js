@@ -624,6 +624,22 @@ function present(spec, value, prov, again) {
     out.append(canvas);
     actions.append(action("save the plate", () => download(canvas, `steropes-${hex.slice(0, 8)}.png`)));
     actions.append(action("copy the seed", () => navigator.clipboard?.writeText(hex)));
+  } else if (spec.kind === "monkey") {
+    const p = document.createElement("p");
+    p.className = "result mono typing";
+    const miss = document.createElement("span");
+    miss.textContent = value.typed.slice(0, -value.word.length);
+    const hit = document.createElement("b");
+    hit.textContent = value.word;
+    p.append(miss, hit);
+    out.append(p);
+
+    const odds = document.createElement("p");
+    odds.className = "prov";
+    odds.textContent = `${value.typed.length} keys for "${value.word}", which one arrangement in ${(27 ** value.word.length).toLocaleString("en")} spells`;
+    out.append(odds);
+
+    actions.append(action("copy", () => navigator.clipboard?.writeText(value.typed)));
   } else if (spec.kind === "deck") {
     const ul = document.createElement("ul");
     ul.className = "deck";
@@ -660,6 +676,7 @@ function summarise(spec, value) {
   if (spec.kind === "exposure") return `${value.length} bytes`;
   if (spec.kind === "art" || spec.kind === "blockie") return "drawn";
   if (spec.kind === "deck") return `${value[0]} off the top`;
+  if (spec.kind === "monkey") return `"${value.word}" in ${value.typed.length} keys`;
   return String(value);
 }
 

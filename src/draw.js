@@ -120,6 +120,61 @@ export async function uuid(reader) {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+// ── the monkey ───────────────────────────────────────────────────────────────
+//
+// Borel's monkey at a typewriter, with the sky's hand on the keys. It types one
+// key per strike and stops the first time the stream spells a word, which is
+// the theorem run at the only scale a page can afford: not Hamlet, one word.
+//
+// The wait is the argument. Three letters is 27^3 = 19,683 arrangements, and
+// with this many words in the list a hit lands every 57 keys on average, so the
+// monkey is legibly slow at a thing a person does without thinking. Multiply
+// the wait by 19,683 for every further letter and the full line stops being a
+// long wait and starts being a number with no time in it.
+
+/** The keyboard: twenty-six letters and the space bar, no shift, no punctuation. */
+export const KEYS = "abcdefghijklmnopqrstuvwxyz ";
+
+/**
+ * What counts as a word. Three letters carries the hit rate: every entry longer
+ * than that is a thousand times rarer and is here for the day it lands.
+ */
+export const WORDS = new Set(
+  `act add ado age ago aid ail aim air ale all and ant any ape apt arm art ask asp ate awe axe aye
+   bad bag ban bar bat bay bed bee beg bet bid big bit boy bow box bud bug but buy
+   can cap car cat cry cup cur cut day den dew did die dim din dip doe dog don dot dry due dun
+   ear eat ebb egg eke elf ell elm end err eve ewe eye fad fan far fat fee few fie fig fin fir fit fix
+   fly foe fog fop for fox fro fry fur gap gay get gig gin god got gun gut had hag ham hap hat hay
+   hem hen her hew hid hie him hip his hit hoe hog hot how hue hug hum hut ice ill imp ink inn ire irk its ivy
+   jar jaw jay jet job jot joy keg key kid kin kit lad lag lap law lay lea led leg lie lip lit lop lot low
+   mad man map mar mat maw may men met mew mid mob mop mow mud mug nag nap nay net new nib nip nod nor not now nun nut
+   oak oar oat odd ode off oft oil old one orb ore our out owe owl own
+   pan par paw pay pea peg pen pet pew pie pig pin pit ply pod pot pox pry pun pup put
+   rag ram ran rap rat raw ray red rib rid rim rip rob rod roe rot row rub rue rug rum run rut
+   sad sag sap sat saw say sea see set sew she shy sin sip sir sit six sky sly sob sod son sop sow spy sty sum sun sup
+   tan tap tar tax tea ten the thy tie tin tip toe ton too top tow toy try tub tug two urn use
+   van vat vex vie vow wag wan war was wax way web wed wee wet who why wig win wit woe won woo wry
+   yea yes yet yew yon you
+   alas dost doth fain hark hath lady lord love sire thee thou will word`.split(/\s+/)
+);
+
+/**
+ * Type until the tail of the stream is a word. Shortest match first, so a hit
+ * is reported at the length that actually earned it rather than at whatever
+ * longer window happens to contain one.
+ */
+export async function monkey(reader, words = WORDS) {
+  const longest = Math.max(...[...words].map((w) => w.length));
+  let typed = "";
+  for (;;) {
+    typed += KEYS[await below(reader, KEYS.length)];
+    for (let n = 3; n <= longest && n <= typed.length; n++) {
+      const tail = typed.slice(-n);
+      if (words.has(tail)) return { typed, word: tail };
+    }
+  }
+}
+
 /** Thirty-two fresh bytes, as hex. The seed the artwork is drawn from. */
 export async function seed(reader, bytes = 32) {
   const b = [];
@@ -213,6 +268,15 @@ export const DRAWS = {
     strikes: 26,
     kind: "deck",
     run: (r) => shuffle(r, DECK),
+  },
+  monkey: {
+    label: "monkey",
+    // A mean rather than a floor: measured at 57 keys to a hit over 200 runs,
+    // near enough one byte a key, two bytes a strike. The one draw here that
+    // can genuinely run long, which is the theorem showing through the bar.
+    strikes: 30,
+    kind: "monkey",
+    run: monkey,
   },
   art: {
     label: "artwork",

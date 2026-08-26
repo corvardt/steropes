@@ -12,7 +12,7 @@ import { readFileSync } from "node:fs";
 import { runAll, controlGood, controlRigged, seeded, MIN_BITS } from "../src/tests.js";
 import { createFilter, lowByte, parseFrame, SPACING_NS } from "../src/source.js";
 import { createPool, toBits, condition } from "../src/pool.js";
-import { createReader, below, between, shuffle, uuid, DECK, expose } from "../src/draw.js";
+import { createReader, below, between, shuffle, uuid, monkey, DECK, KEYS, WORDS, expose } from "../src/draw.js";
 import { blockie } from "../src/blockie.js";
 import { SPARK_H, headroom, sparkY, trace } from "../src/spark.js";
 
@@ -192,6 +192,16 @@ console.log("\ndraws");
 
   const id = await uuid(feed(Array.from({ length: 16 }, () => 0xff)));
   check(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id), `uuid v4 shape: ${id}`);
+
+  // The monkey. A byte below 243 is its own key index, so these spell it out.
+  const key = (c) => KEYS.indexOf(c);
+  const typed = await monkey(feed([key("q"), key("z"), key("t"), key("h"), key("e"), key("x")]));
+  check(typed.typed === "qzthe", `the monkey stops on the word, not after it: ${typed.typed}`);
+  check(typed.word === "the" && typed.typed.endsWith(typed.word), "and the hit is the tail of what it typed");
+  check(
+    [...WORDS].every((w) => w.length >= 3 && /^[a-z]+$/.test(w)),
+    "every word is typeable on the twenty-seven keys and long enough to be a wait"
+  );
 
   // Provenance has to name the strikes that actually decided it.
   const p = createReader();

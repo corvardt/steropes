@@ -481,6 +481,11 @@ a.ctl:hover {
   letter-spacing: 0.02em;
 }
 
+/* The monkey's gibberish recedes so the word it stumbled into is the reading. */
+.result.typing span {
+  color: var(--c-dim);
+}
+
 /* Fifty-two cards want to be countable at a glance. */
 .deck {
   display: grid;
