@@ -43,6 +43,37 @@ export function apply(theme) {
   return set(theme);
 }
 
+/* ── The coating ─────────────────────────────────────────────────────────────
+   The phosphor on the tube, carried over from Tyche. Unlike the medium this is
+   one instrument's own decoration rather than a property of the domain, so it
+   lives in localStorage: a reader who wants a crimson Steropes has not asked
+   for a crimson everything.
+
+   `white` is the absence of a coating, not a fourth colour, so choosing it
+   removes the attribute rather than writing one no rule matches. */
+
+export const PALETTES = ["white", "oil", "crimson", "demon"];
+
+export function palette() {
+  return document.documentElement.dataset.palette || "white";
+}
+
+export function applyPalette(name) {
+  const next = PALETTES.includes(name) ? name : "white";
+  if (next === "white") delete document.documentElement.dataset.palette;
+  else document.documentElement.dataset.palette = next;
+  try {
+    localStorage.setItem("palette", next);
+  } catch {
+    // Storage disabled. The tube still changes; it just will not be there next
+    // time, which is the whole of what is lost.
+  }
+  // A coating changes the void, and the browser's own chrome is part of the
+  // medium, so it is re-read here as the flip does it.
+  set(current());
+  return next;
+}
+
 /** Follow the system for as long as the reader hasn't expressed a preference. */
 export function followSystem(onChange) {
   if (document.cookie.includes(`${KEY}=`)) return;

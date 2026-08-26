@@ -12,7 +12,7 @@ import { createReader, DRAWS, expected, keysTyped, monkey, rangeDraw, expose } f
 import { plate, exposurePlate, download } from "./art.js";
 import { render as renderBlockie, blockieDraw } from "./blockie.js";
 import { SPARK_W, SPARK_H, headroom, sparkY, trace } from "./spark.js";
-import { apply, current, followSystem } from "./theme.js";
+import { apply, applyPalette, current, followSystem, palette } from "./theme.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -57,12 +57,62 @@ function label(theme) {
   medium.setAttribute("aria-label", `switch to ${other}`);
 }
 
-const setMedium = (theme) => label(apply(theme));
+const setMedium = (theme) => {
+  label(apply(theme));
+  markSettings();
+};
 const flip = () => setMedium(current() === "dark" ? "light" : "dark");
+
+// ── configuration ────────────────────────────────────────────────────────────
+//
+// The bezel keeps the medium, because it is the one setting a reader comes back
+// to; everything else that is set rather than reported is in here. A real
+// <dialog>, so the backdrop, Escape and the focus trap are the browser's.
+
+const cfg = document.getElementById("cfg");
+
+/** Both rows say which one is on, and the coatings row is not there at all on
+ *  paper: a coating is a property of a tube. */
+function markSettings() {
+  const dark = current() === "dark";
+  const mark = (b, on) => {
+    b.setAttribute("aria-pressed", String(on));
+    b.classList.toggle("glow", on);
+  };
+  for (const b of cfg.querySelectorAll("[data-medium-choice]")) mark(b, b.dataset.mediumChoice === current());
+  for (const b of cfg.querySelectorAll("[data-palette-choice]")) mark(b, b.dataset.paletteChoice === palette());
+  document.getElementById("cfg-palette").hidden = !dark;
+  document.getElementById("cfg-note").hidden = !dark;
+}
+
+cfg.addEventListener("click", (e) => {
+  const pressed = e.target.closest("button");
+  if (!pressed) return;
+  if (pressed.dataset.mediumChoice) setMedium(pressed.dataset.mediumChoice);
+  else if (pressed.dataset.paletteChoice) {
+    applyPalette(pressed.dataset.paletteChoice);
+    markSettings();
+  } else cfg.close();
+});
+
+// Clicking the ground outside the panel dismisses it. The dialog's own box is
+// the only thing inside it, so a click that lands on the dialog element itself
+// landed on the backdrop.
+cfg.addEventListener("mousedown", (e) => {
+  if (e.target === cfg) cfg.close();
+});
+
+document.getElementById("cfg-open").addEventListener("click", () => {
+  markSettings();
+  cfg.showModal();
+});
 
 label(current());
 medium.addEventListener("click", flip);
-followSystem(label);
+followSystem((theme) => {
+  label(theme);
+  markSettings();
+});
 
 // ── the bezel ────────────────────────────────────────────────────────────────
 //
@@ -1020,7 +1070,9 @@ $("range-form").addEventListener("submit", (e) => {
 
 $("card-close").addEventListener("click", closeCard);
 addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !card.hidden) closeCard();
+  // The dialog answers Escape itself, and the same press must not also dismiss
+  // the card behind it.
+  if (e.key === "Escape" && !cfg.open && !card.hidden) closeCard();
   // `t` for the medium, the same key the rest of the set uses. Not while a
   // range is being typed into, where it is just a letter.
   if (e.key === "t" && e.target.tagName !== "INPUT") flip();

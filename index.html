@@ -75,6 +75,15 @@
         var m = document.cookie.match(/(?:^|;\s*)corvardt-theme=(dark|light)/);
         var t = m ? m[1] : matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
         document.documentElement.dataset.theme = t;
+        // The coating is this instrument's own, not the domain's, so it is in
+        // localStorage rather than the shared cookie. Read here for the same
+        // reason as the medium: so a chosen tube does not flash grey on load.
+        try {
+          var p = localStorage.getItem('palette');
+          if (/^(oil|crimson|demon)$/.test(p || '')) document.documentElement.dataset.palette = p;
+        } catch (e) {
+          // Storage disabled. The grey tube is the right fallback.
+        }
         // Read back off the palette rather than repeating its hexes here. This
         // script runs after the stylesheets, so `--c-void` is already resolved.
         document.querySelector('meta[name=theme-color]').content = getComputedStyle(
@@ -114,10 +123,46 @@
              control offers light until the script reads the real one. -->
         <button type="button" class="ctl" data-medium aria-label="switch to light">light</button>
         <span class="rule" aria-hidden="true"></span>
+        <!-- Everything the reader sets, in one place, the way the set's other
+             instruments carry it. The medium is on the bezel as well because it
+             is the one setting anyone comes back to. -->
+        <button type="button" class="ctl" id="cfg-open" aria-haspopup="dialog">cfg</button>
+        <span class="rule" aria-hidden="true"></span>
         <a class="ctl" href="https://github.com/corvardt/steropes" target="_blank" rel="noreferrer">src</a>
         <a class="ctl" href="https://twitter.com/corvardt" target="_blank" rel="noreferrer">x</a>
       </nav>
     </header>
+
+    <!-- A real dialog, so the backdrop, the escape key and the focus trap are
+         the browser's rather than three more things to get wrong here. -->
+    <dialog class="sheet" id="cfg" aria-label="configuration">
+      <span class="tick tl"></span><span class="tick tr"></span>
+      <span class="tick bl"></span><span class="tick br"></span>
+      <div class="card-head">
+        <span class="card-label glow">configuration</span>
+        <button type="button" id="cfg-close" aria-label="Close">[ esc ]</button>
+      </div>
+
+      <section class="group">
+        <div class="group-head"><span>medium</span></div>
+        <div class="choices" id="cfg-medium">
+          <button type="button" class="ctl" data-medium-choice="dark">dark</button>
+          <button type="button" class="ctl" data-medium-choice="light">light</button>
+        </div>
+
+        <!-- Absent on paper rather than disabled: a coating is a property of a
+             tube, and paper has one ink. -->
+        <div class="choices" id="cfg-palette">
+          <button type="button" class="ctl" data-palette-choice="white">white</button>
+          <button type="button" class="ctl" data-palette-choice="oil">oil</button>
+          <button type="button" class="ctl" data-palette-choice="crimson">crimson</button>
+          <button type="button" class="ctl" data-palette-choice="demon">demon</button>
+        </div>
+        <p class="note" id="cfg-note">
+          The phosphor the tube is coated with. <b>white</b> is no coating at all.
+        </p>
+      </section>
+    </dialog>
 
     <main class="panel">
       <section class="stage">

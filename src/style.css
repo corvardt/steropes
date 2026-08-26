@@ -42,6 +42,66 @@
   --grid: rgba(0, 0, 0, 0.02);
 }
 
+/* ── Coatings ─────────────────────────────────────────────────────────────────
+   The phosphor the tube is coated with, carried over from Tyche so the two
+   instruments wear the same three. They belong to the medium and would sit in
+   `crt.css` if that file were not byte-identical across the set; forking the
+   shared medium to give one project a setting is the more expensive of the two
+   mistakes, so they are additions here instead.
+
+   Dark only, and `[data-theme="dark"]` is part of every selector: a coating is
+   a property of a tube, and paper has one ink. `white` is the absence of a
+   coating, which is the grey palette above, so choosing it writes an attribute
+   no rule matches.
+
+   `--c-strike`, the bloom and the grid are not repeated. White is reserved for
+   the strike itself in every coating, which is exactly where the grey tube
+   already stood. `--c-fail` is not repeated either: it is the one colour on the
+   page that means something, and a failing badge that changed hue with the
+   coating would be decoration rather than a signal. */
+
+/* Oil 6, by GrafxKid. https://lospec.com/palette-list/oil-6 */
+:root[data-theme="dark"][data-palette="oil"] {
+  --c-void: #272744;
+  --c-panel: #292948;
+  --c-line: #373960;
+  --c-land: #6e5982;
+  --c-dim: #ab8b95;
+  --c-text: #ffe6b7;
+
+  --ink-rest: #ffe6b7;
+  /* Sixty per cent of the way from the line to the land, which is where the
+     grey tail sits between its own two. The walk is the subject of the page and
+     it has to keep that footing on every tube. */
+  --walk-tail: #584c74;
+}
+
+/* Crimson, by WildLeoKnight. https://lospec.com/palette-list/crimson */
+:root[data-theme="dark"][data-palette="crimson"] {
+  --c-void: #1b0326;
+  --c-panel: #220529;
+  --c-line: #4b1039;
+  --c-land: #83353a;
+  --c-dim: #cd5947;
+  --c-text: #c9cdb7;
+
+  --ink-rest: #c9cdb7;
+  --walk-tail: #6d263a;
+}
+
+/* Blood Demon RX, by Chicknhawk. https://lospec.com/palette-list/blood-demon-rx */
+:root[data-theme="dark"][data-palette="demon"] {
+  --c-void: #171f37;
+  --c-panel: #1f2138;
+  --c-line: #4b2941;
+  --c-land: #98374e;
+  --c-dim: #f7495f;
+  --c-text: #ffcfe2;
+
+  --ink-rest: #ffcfe2;
+  --walk-tail: #793149;
+}
+
 /* ── Frame ────────────────────────────────────────────────────────────────────
    Bezel, instrument, bezel. The two bars are fixed height and the panel takes
    what is left, which is what stops a long readouts column from pushing the
@@ -472,6 +532,119 @@ a.ctl:hover {
 
 .card-head button:hover:not(:disabled) {
   border: 0;
+  color: var(--c-text);
+}
+
+/* ── Configuration ────────────────────────────────────────────────────────────
+   The same box as the card, on the glass rather than on the stage. Everything
+   modal about it — the ground behind, Escape, keeping Tab inside — is the
+   browser's, which is most of why it is a <dialog> and not another div. */
+.sheet {
+  /* What centres a modal dialog: the UA sets `inset: 0` and this, and the
+     medium's reset zeroes every margin on the page, this one included. Without
+     it the panel sits in the top-left corner. */
+  margin: auto;
+  width: min(30rem, calc(100% - 3rem));
+  max-height: calc(100% - 6rem);
+  overflow-y: auto;
+  color: var(--c-text);
+  background: var(--c-panel);
+  border: 1px solid var(--c-line);
+  /* Nothing on the panel itself: it is a stack of ruled sections, and each one
+     carries its own. */
+  padding: 0;
+}
+
+.sheet::backdrop {
+  /* The void, not black: on a coated tube the ground behind the panel is that
+     tube's ground. */
+  background: color-mix(in srgb, var(--c-void) 72%, transparent);
+}
+
+/* The panel's own bezel row, ruled off from what it holds and staying put if
+   the panel ever holds more than one screen of settings. */
+.sheet .card-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.75rem 1.25rem;
+  background: var(--c-panel);
+  border-bottom: 1px solid var(--c-line);
+}
+
+/* The title names the panel rather than labelling a value, so it takes the
+   wordmark's spacing and the text colour, not a caption's. */
+.sheet .card-label {
+  letter-spacing: 0.22em;
+  color: var(--c-text);
+}
+
+.group {
+  padding: 0.75rem 1.25rem;
+}
+
+.group + .group {
+  border-top: 1px solid var(--c-line);
+}
+
+/* A caption trailed by a rule, the series' section break. */
+.group-head {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding-bottom: 0.25rem;
+}
+
+.group-head span {
+  font-size: 10px;
+  line-height: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--c-dim);
+  flex-shrink: 0;
+}
+
+.group-head::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--c-line);
+}
+
+/* Bare labels, not boxes. Every control in the set is a small caps word that
+   lights when you point at it, and the panel is not the place the set starts
+   drawing buttons with edges. */
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* The coatings are a second question about the same setting, so they are a
+   second row inside the group rather than a group of their own. */
+.choices + .choices {
+  margin-top: 0.75rem;
+}
+
+/* The one that is on is simply lit, which is how a held control is marked
+   everywhere else on the page. The bloom is the medium's own `.glow`, put on
+   by the script that sets the state. */
+.choices .ctl[aria-pressed="true"] {
+  color: var(--c-text);
+}
+
+.note {
+  max-width: 46ch;
+  font-size: 11px;
+  line-height: 20px;
+  color: var(--c-dim);
+  margin-top: 0.5rem;
+}
+
+.note b {
+  font-weight: 400;
   color: var(--c-text);
 }
 
