@@ -87,14 +87,14 @@ fooled, and the fourth column is the whole reason there are four.
 | **monobit** | Are there as many ones as zeros | one symbol leads | `0101…`, perfectly balanced and perfectly predictable |
 | **runs** | Are the streaks the right length | too many transitions, or too few | structure that only shows at the byte level |
 | **chi² per byte** | Is the byte distribution flat | lumpy, *or too flat* | correlation with flat marginals |
-| **serial** | Is there correlation at lag 1 to 8 | any lag repeats | — |
+| **serial** | Is there correlation at lag 1 to 8 | any lag repeats | none |
 
 **monobit** counts the ones and measures how far off half that is, in standard
 deviations: `s = |2·ones − n| / √n`, then `p = erfc(s/√2)`.
 
 **runs** counts maximal streaks of identical bits against the `2n·π(1−π)`
 expected of independent ones. This is what kills the alternating stream monobit
-waves through — it has the most runs a sequence can have. It carries a
+waves through: it has the most runs a sequence can have. It carries a
 precondition: if monobit is already badly off, the runs statistic is not
 meaningful, so it returns p=0 rather than a number that looks like a reading.
 
@@ -102,7 +102,7 @@ meaningful, so it returns p=0 rather than a number that looks like a reading.
 to the `n/256` expected, `X2 = Σ (observed − expected)² / expected` on df=255,
 with p from the Wilson–Hilferty approximation. It needs 1,280 bytes so that
 every bin expects at least five; below that it reports no reading rather than an
-invalid one. A real stream scatters around X2≈255 — the lightning scores 286,
+invalid one. A real stream scatters around X2≈255. The lightning scores 286,
 the seeded-PRNG control 265.
 
 **serial** counts, for each lag 1 to 8, how often bit *i* equals bit *i+k*.
@@ -132,7 +132,7 @@ that kind absorbs *independent* failures, and consecutive evaluations here are
 not independent: the pool is a ring the sky fills slowly, so at a couple of
 strikes a second an evaluation two seconds after the last one is grading almost
 exactly the same bytes. Three in a row is barely more evidence than one. A badge
-does not go red on a bad moment and recover — it goes red on a bad *window*, and
+does not go red on a bad moment and recover; it goes red on a bad *window*, and
 stays red until the ring has turned that window over.
 
 Which is why the ring is 2KB rather than the 4KB the plan suggested off the cuff.
@@ -153,7 +153,7 @@ only colour on the site and a reading that exists only in a hue is a reading
 some people never get.
 
 The trace does not plot p. Drawn against a linear 0..1 axis the threshold sits at
-0.01 — the bottom one percent of the box, a tenth of a pixel at this height — so
+0.01, the bottom one percent of the box, a tenth of a pixel at this height, so
 the one line that decides the verdict was invisible and the trace was a wiggle
 with no reading on it. It plots **headroom** instead: `log10(margin / alpha)`,
 how many decades of room the test has before it fails. Zero is exactly on the
@@ -169,7 +169,7 @@ the whole argument, drawn.
 The axis clamps to two decades above the rule and one below, so a single
 catastrophic evaluation cannot flatten every other point in the window against
 an edge. A test still waiting for its minimum sample has no p-value at all, and
-that absence leaves a gap in the trace — it used to be plotted as zero, the
+that absence leaves a gap in the trace. It used to be plotted as zero, the
 worst score there is, which drew chi² as a flatline along the floor while it was
 merely counting bytes.
 
@@ -201,7 +201,7 @@ its own caption and checked.
 
 The **exposure** is the only one that is a window rather than an allocation.
 Every other draw asks how many bytes it needs and stops, so the wait is a side
-effect; this one takes a duration — one, five or fifteen minutes — and the plate
+effect; this one takes a duration (one, five or fifteen minutes) and the plate
 is whatever fell into it. That makes the time the subject rather than a cost:
 two exposures of the same length differ because the weather did, and a quiet
 night and a storm come out as visibly different pictures rather than the same
@@ -247,7 +247,7 @@ Three readouts exist so the page's claims can be checked rather than believed.
 taken off it. `round(|degrees| × 1e6) & 0xff`, one row per frame, so the claim
 that the low byte of a position is solver noise can be confirmed against the raw
 stream above it with a calculator. Rejected frames stay in the list rather than
-disappearing from it — a filter that discards a quarter of what arrives is
+disappearing from it. A filter that discards a quarter of what arrives is
 easier to believe when the discarding is visible, and the acceptance figure a
 few lines up is otherwise just a number.
 
@@ -289,7 +289,7 @@ Then open the page with a feed on the address:
 http://localhost:8080/?feed=wss://ws1.blitzortung.org:443/&hello=1
 ```
 
-There is nothing to install. No dependencies, no build step, no bundler — the
+There is nothing to install. No dependencies, no build step, no bundler: the
 repository is the site, and `npm run dev` is `python3 -m http.server`. The
 command-line tools want Node 22 or newer, which is the version that gave Node a
 global `WebSocket`; the page itself wants only a browser.
@@ -323,8 +323,8 @@ Three things, and only the first is unusual.
 ### 1. A relay, because Blitzortung ask for one
 
 The page never talks to Blitzortung directly, and neither should yours.
-Blitzortung is a volunteer network — people who bought a receiver and put it on
-their roof — and they ask that a project using their data serve it from its own
+Blitzortung is a volunteer network, people who bought a receiver and put it on
+their roof, and they ask that a project using their data serve it from its own
 server rather than pointing every visitor at theirs. One socket upstream,
 however many readers.
 
@@ -351,7 +351,7 @@ straight at the upstream instead.
 ### 2. Let the relay carry your origin
 
 The relay's `ALLOWED_ORIGINS` is a comma-separated, exact-match list of the
-origins it will serve. Unset, it answers anybody — which is what a local
+origins it will serve. Unset, it answers anybody, which is what a local
 `wrangler dev` wants, and what a public deployment must not be: an open relay in
 front of a volunteer's server hands back the one property the relay exists to
 protect.
@@ -380,7 +380,7 @@ There is no build step, which is the point. Point Cloudflare Pages at the repo:
 
 Any static host works; `_headers` is Pages-specific and the rest is plain files.
 
-**Why no bundler.** Nothing here needs compiling — no JSX, no TypeScript, just
+**Why no bundler.** Nothing here needs compiling: no JSX, no TypeScript, just
 ES modules a browser already runs. Bundling would also cost the one property the
 page is built to have: open devtools on the deployed site and you can read the
 same `tests.js` that is grading the stream, comments intact. Minified into a
@@ -398,12 +398,13 @@ runs last week's tests while this week's badges vouch for them.
 ```sh
 npm run shots                                      # from production
 npm run shots -- --soak 420                        # until chi2 stops waiting
+npm run shots -- --zoom 1                          # 1:1, walk only, no badges
 npm run shots -- --url "http://localhost:8080/?feed=wss://…"
 ```
 
 It has to be regenerable, because what it shows is the weather on the morning it
-was taken. A screenshot pasted in once decays quietly — the palette moves, a
-readout is renamed, a badge gains a column — and the card goes on advertising an
+was taken. A screenshot pasted in once decays quietly. The palette moves, a
+readout is renamed, a badge gains a column, and the card goes on advertising an
 instrument that no longer exists.
 
 The soak is the whole difficulty. A page grabbed on load is an empty grid and a
@@ -411,6 +412,14 @@ fair picture of nothing, so the shot waits: about 20s before the walk has been
 anywhere, 40s before monobit, runs and serial have their 500 bits, and about
 four minutes before chi² has the 1,280 bytes it needs to stop reporting that it
 is still counting.
+
+The card is 1200×630 because that is the shape the people who unfurl it chose,
+and the panel is taller than that. At 1:1 the badges, which are the whole
+argument, fall off the bottom, so it renders at 1.6× and scales back down: the
+same 1200×630 file, holding about a thousand pixels of column instead of six
+hundred. The type ends up
+small, which costs nothing, because a card is drawn a few hundred pixels wide in
+a timeline and nobody was reading p-values off it there.
 
 `tools/shots.mjs` drives Chrome over the DevTools Protocol using the WebSocket
 Node has had since v22, rather than pulling in a browser-automation dependency
@@ -475,8 +484,9 @@ by way of the classic ethereum-blockies construction.
 
 ## Licence
 
-None yet — no `LICENSE` file has been chosen, so default copyright applies and
-nobody has permission to reuse this. If you want to build on it, open an issue.
+[MIT](LICENSE). Do what you like with the code.
 
-Blitzortung's data is theirs and carries its own terms; nothing here grants any
-rights to it.
+The data is a separate question. Strikes come from the Blitzortung network and
+are theirs, under their own terms; nothing here grants any rights to them. If
+you run your own instance, run your own relay and be a good guest of a service
+that volunteers pay for.

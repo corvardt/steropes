@@ -2,6 +2,7 @@
 //
 //   node tools/shots.mjs                     # the unfurl card, from production
 //   node tools/shots.mjs --soak 240          # let it run longer first
+//   node tools/shots.mjs --zoom 1            # 1:1, walk only, no badges
 //   node tools/shots.mjs --url http://localhost:8080/?feed=wss://…
 //
 // The card has to be regenerable, because what it shows is the weather on the
@@ -40,6 +41,18 @@ const PORT = 9222;
 const WIDTH = 1200;
 const HEIGHT = 630;
 
+// How much page to fit into that. The card is a fixed shape and the panel is
+// taller than it, so at 1:1 the readouts run off the bottom and the badges,
+// which are the whole argument, are not in the picture. Rendering larger and
+// scaling down keeps the aspect and buys height: the 1.6 default holds about a
+// thousand pixels of column, which is the badges. Text gets smaller, which
+// costs less than it sounds
+// like, since a card is rendered a few hundred pixels wide in a feed and nobody
+// was reading the p-values off it anyway.
+const ZOOM = Number(arg("zoom", 1.6));
+const VW = Math.round(WIDTH * ZOOM);
+const VH = Math.round(HEIGHT * ZOOM);
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const chrome = spawn(
@@ -49,7 +62,7 @@ const chrome = spawn(
     "--disable-gpu",
     "--hide-scrollbars",
     `--remote-debugging-port=${PORT}`,
-    `--window-size=${WIDTH},${HEIGHT}`,
+    `--window-size=${VW},${VH}`,
     "about:blank",
   ],
   { stdio: "ignore" }
@@ -98,8 +111,8 @@ const send = (method, params = {}) =>
 // The window size is a hint; this is the guarantee. Scale factor 1 because the
 // card is consumed at exactly the size it is declared at.
 await send("Emulation.setDeviceMetricsOverride", {
-  width: WIDTH,
-  height: HEIGHT,
+  width: VW,
+  height: VH,
   deviceScaleFactor: 1,
   mobile: false,
 });
@@ -114,7 +127,12 @@ for (let left = SOAK; left > 0; left -= 5000) {
 }
 process.stdout.write("\n");
 
-const shot = await send("Page.captureScreenshot", { format: "png" });
+const shot = await send("Page.captureScreenshot", {
+  format: "png",
+  // Scaled back to the declared size, so whatever the zoom the file is the
+  // 1200x630 the meta tags promise.
+  clip: { x: 0, y: 0, width: VW, height: VH, scale: 1 / ZOOM },
+});
 writeFileSync(OUT, Buffer.from(shot.data, "base64"));
 console.log(`${OUT}  ${WIDTH}x${HEIGHT}`);
 
