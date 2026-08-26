@@ -911,7 +911,41 @@ span.spark {
   .panel {
     flex: none;
     grid-template-columns: 1fr;
-    grid-template-rows: 60vh auto;
+    grid-template-rows: auto auto;
+  }
+
+  /* The bar floats over the walk on a wide screen, where the stage has room to
+     spare either side of it. On a phone it wraps to four rows and covers the
+     instrument it is controlling, so it comes off the glass and sits under it:
+     the walk keeps its own height and the controls get theirs, whatever the
+     screen turns out to be. */
+  .stage {
+    display: flex;
+    flex-direction: column;
+    /* One screen, less the two bezels: the instrument and the controls that
+       drive it are the first thing, and the column starts below the fold.
+       dvh, so a phone retracting its address bar does not resize the walk. */
+    height: calc(100dvh - 72px);
+  }
+
+  #walk {
+    /* Whatever the bar leaves, rather than a share fixed in advance. The bar is
+       four rows on a phone and two on a tablet, and guessing at that cost the
+       walk more room than the guess was worth. */
+    flex: 1;
+    height: auto;
+    min-height: 8rem;
+  }
+
+  /* Its own padding, not the column's: the gap is set for blocks of text a
+     thumb's width apart, and spent above and below the draws it is most of a
+     row of buttons. */
+  .bar {
+    position: static;
+    background: none;
+    border-top: 1px solid var(--c-line);
+    padding: 0.75rem var(--gap);
+    gap: 0.5rem;
   }
 
   .readouts {
@@ -938,15 +972,82 @@ span.spark {
     bottom: 0;
   }
 
-  /* First to go, in this order: the strapline says what the lede below it says
-     again, and the node is diagnostic. The controls never give way. */
+  /* First to go: the strapline says what the lede below it says again. The
+     controls never give way. */
   .slug {
     display: none;
+  }
+
+  /* The card is a child of the stage, and the stage on a phone is half a screen
+     of walk, so a fifty-two card deck opened into a box that could not hold it.
+     Off the stage and onto the glass: between the two bezels, which are sticky
+     here and so are always exactly there. The answer gets the whole screen,
+     which is the one dimension a phone is not short of. */
+  .card {
+    position: fixed;
+    /* Hung from the top bezel rather than centred, and sized to what it holds:
+       a deck fills the glass down to the status line, a card still waiting for
+       the sky stays the three lines it has to say. dvh, not vh, so the address
+       bar sliding away does not leave the bottom of a deck under it. */
+    inset: 44px 0 auto;
+    max-height: calc(100dvh - 72px);
+    z-index: 9;
+    transform: none;
+    width: auto;
+    border-width: 1px 0;
+  }
+
+  /* Bounded by the sheet now rather than by the tube, and the sheet is already
+     scrolling: a plate held to half the viewport inside it left the actions
+     below stranded in empty space. */
+  .plate {
+    max-height: none;
   }
 }
 
 @media (max-width: 30rem) {
-  .node {
+  /* First to go, in this order: the node is diagnostic, and the credit is
+     repeated in full at the foot of the column. What is left is the clock and
+     the commentary, which is the line's reason for existing: at this width the
+     three of them shared the row and the message truncated to "receiving …". */
+  .node,
+  .source {
     display: none;
+  }
+}
+
+/* ── Touch ────────────────────────────────────────────────────────────────────
+   Same instrument, thumbs. A 33px control is a fine mouse target and a poor
+   thumb one, and the draw buttons are the whole point of the page, so they are
+   sized to the 44px everyone converged on. The bezel controls and the column's
+   text links take it as padding rather than as min-height, so the target grows
+   without the furniture around it moving. */
+@media (pointer: coarse) {
+  .bar button,
+  .bar-range input,
+  .bar-range select {
+    min-height: 44px;
+  }
+
+  /* Exactly the bezel's own height, so this fills the row without changing it.
+     Typed as the two elements rather than as `.ctl`, because the rule that
+     zeroes their padding is. */
+  button.ctl,
+  a.ctl {
+    padding-top: 13px;
+    padding-bottom: 13px;
+  }
+
+  /* The hit area grows, the layout does not: the dismiss is on a baseline with
+     the card's label and must stay on it. */
+  .card-head button {
+    padding: 12px;
+    margin: -12px;
+  }
+
+  .link,
+  .log button {
+    padding-top: 13px;
+    padding-bottom: 13px;
   }
 }
