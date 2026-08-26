@@ -611,18 +611,18 @@ function present(spec, value, prov, again) {
     const { canvas, hex } = exposurePlate(value, prov, spec.held ?? spec.span, ink);
     canvas.className = "plate";
     out.append(canvas);
-    actions.append(action("save the plate", () => download(canvas, `entropic-exposure-${hex.slice(0, 8)}.png`)));
+    actions.append(action("save the plate", () => download(canvas, `steropes-exposure-${hex.slice(0, 8)}.png`)));
     actions.append(action("copy the seed", () => navigator.clipboard?.writeText(hex)));
   } else if (spec.kind === "blockie") {
     const { canvas, text } = renderBlockie(value, prov, ink);
     canvas.className = "plate";
     out.append(canvas);
-    actions.append(action("save the blockie", () => download(canvas, `entropic-blockie-${text.slice(0, 8)}.png`)));
+    actions.append(action("save the blockie", () => download(canvas, `steropes-blockie-${text.slice(0, 8)}.png`)));
   } else if (spec.kind === "art") {
     const { canvas, hex } = plate(value, prov, ink);
     canvas.className = "plate";
     out.append(canvas);
-    actions.append(action("save the plate", () => download(canvas, `entropic-${hex.slice(0, 8)}.png`)));
+    actions.append(action("save the plate", () => download(canvas, `steropes-${hex.slice(0, 8)}.png`)));
     actions.append(action("copy the seed", () => navigator.clipboard?.writeText(hex)));
   } else if (spec.kind === "deck") {
     const ul = document.createElement("ul");
@@ -845,7 +845,7 @@ async function beginExposure(minutes) {
 
   note.className = "prov";
   actions.innerHTML = "";
-  actions.append(action("save the plate", () => download(final, `entropic-exposure-${hex.slice(0, 8)}.png`)));
+  actions.append(action("save the plate", () => download(final, `steropes-exposure-${hex.slice(0, 8)}.png`)));
   actions.append(action("copy the seed", () => navigator.clipboard?.writeText(hex)));
   actions.append(action("expose again", () => beginExposure(minutes)));
 

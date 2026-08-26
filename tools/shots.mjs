@@ -31,7 +31,7 @@ const arg = (name, fallback) => {
   return i === -1 ? fallback : process.argv[i + 1];
 };
 
-const URL_ = arg("url", "https://entropic.corvardt.com/");
+const URL_ = arg("url", "https://steropes.corvardt.com/");
 const SOAK = Number(arg("soak", 120)) * 1000;
 const OUT = arg("out", "og.png");
 const CHROME = process.env.CHROME || "/usr/bin/google-chrome";

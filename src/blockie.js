@@ -130,7 +130,7 @@ export function render(tile, provenance, ink) {
 
   ctx.fillStyle = ink("--c-dim");
   ctx.font = mono(20);
-  ctx.fillText("ENTROPIC", pad, bottom + 110);
+  ctx.fillText("STEROPES", pad, bottom + 110);
   ctx.textAlign = "right";
   ctx.fillText(`${provenance.strikes} strikes`, W - pad, bottom + 110);
   ctx.textAlign = "left";

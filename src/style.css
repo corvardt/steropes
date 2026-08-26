@@ -1,11 +1,11 @@
-/* Entropic, the instrument panel.
+/* Steropes, the instrument panel.
  *
  * The medium is `crt.css`, carried verbatim from Keraunos by way of Oikos and
  * loaded before this file: palette, type, glass and decay, identical in every
  * project on the domain so the whole set reads as one instrument. Nothing that
  * belongs to the medium belongs in here.
  *
- * What this file adds is Entropic's own. The series reserves white for the one
+ * What this file adds is Steropes's own. The series reserves white for the one
  * thing each instrument exists to show — a lightning strike on Keraunos, the
  * tuned station on Oikos. Here it is `--c-strike` again, in its third sense: a
  * bit that just arrived from the sky, the walk's head, and nothing else.

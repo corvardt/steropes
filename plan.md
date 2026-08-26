@@ -2,10 +2,10 @@ Concept
 True random numbers harvested from thunderstorm timing, verified live, drawn on demand. Single-page instrument, no map, no bolts.
 
 0. Decision, separate page, shared relay
-Entropic ships as its own repo and its own domain, not as a panel inside Keraunos.
+Steropes ships as its own repo and its own domain, not as a panel inside Keraunos.
 Keraunos is a map instrument ("every lightning strike on earth, as it is detected") and its own expansion proposal ranks ten features, none of them entropy. An RNG drawer is a different instrument that happens to drink from the same tap.
 Merging would mean retrofitting into ~996 lines of App.jsx plus twenty lib modules, a settings system, tour engine, rewind track. Separating costs one config line.
-The shared piece is already standalone: Keraunos/relay is a Cloudflare Durable Object holding exactly one upstream socket to Blitzortung and broadcasting frames unchanged, deployed on its own hostname and reached through VITE_FEED_URL. Entropic points at the same URL and gets the identical stream. Blitzortung's "serve it from your own server" request stays satisfied for both.
+The shared piece is already standalone: Keraunos/relay is a Cloudflare Durable Object holding exactly one upstream socket to Blitzortung and broadcasting frames unchanged, deployed on its own hostname and reached through VITE_FEED_URL. Steropes points at the same URL and gets the identical stream. Blitzortung's "serve it from your own server" request stays satisfied for both.
 Cross-link the two in the footer, the same sky, counted / the same sky, drawn from.
 1. Entropy source
 Connect to the same relay Keraunos uses (VITE_FEED_URL). Reuse the LZW decode() and the reconnect/backoff logic from Keraunos Seeker.jsx, the reconnect especially: this feed drops, and a harvester without a close handler silently reports a long run holding a few minutes of data.
@@ -48,7 +48,7 @@ Blockie, the identicon from Tyche. Tile rules taken from Keraunos/ignored/blocki
 The departure is provenance. Both that file and Tyche's npm build run a seed string through an xorshift PRNG and let the generator paint the tile, which is correct when the tile must be reproducible from an address. Here a generator expanding a seed is the thing being avoided, so every cell and colour reads fresh strikes directly.
 The blockie is the only colour on the site, and it is an artifact rather than interface, which is the whole of the exception to the reserved-white rule.
 6. Stack
-Vanilla JS or lightweight framework + Canvas/WebGL for the walk; no backend needed, the relay already exists and is not Entropic's to build or run.
+Vanilla JS or lightweight framework + Canvas/WebGL for the walk; no backend needed, the relay already exists and is not Steropes's to build or run.
 ~3 modules: source.js (WS + bit extraction), pool.js (debias + tests), ui.js (render + draws).
 7. Build order
 DONE, WS ingest + bit extraction + the test suite, in harvest.cjs and analyse.cjs. Both live in this repo and are the reference implementation for source.js and pool.js: the extraction, the dedup rule and the four tests are settled and measured. analyse.cjs carries both controls and should stay the gate whenever the source changes.

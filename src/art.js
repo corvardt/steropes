@@ -98,7 +98,7 @@ export function plate(bytes, provenance, ink) {
 
   ctx.fillStyle = ink("--c-dim");
   ctx.font = mono(20);
-  ctx.fillText("ENTROPIC", 110, 1000);
+  ctx.fillText("STEROPES", 110, 1000);
 
   const when = provenance.from ? new Date(Number(provenance.from / 1000000n)) : null;
   const stamp = when ? when.toISOString().replace("T", " ").slice(0, 19) + " UTC" : "";
@@ -161,7 +161,7 @@ export function exposurePlate(bytes, provenance, span, ink) {
 
   ctx.fillStyle = ink("--c-dim");
   ctx.font = mono(20);
-  ctx.fillText("ENTROPIC", 110, 1060);
+  ctx.fillText("STEROPES", 110, 1060);
   ctx.textAlign = "right";
   ctx.fillText(`${Math.round(span / 1000)}s exposure`, W - 110, 1060);
   ctx.textAlign = "left";

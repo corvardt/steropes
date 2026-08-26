@@ -1,10 +1,10 @@
-# Entropic
+# Steropes
 
-ἐντροπία: a turning in.
+Στερόπης: the lightning-maker, who forged the bolt.
 
 **Random numbers drawn from lightning, verified in front of you.**
 
-**[entropic.corvardt.com](https://entropic.corvardt.com)**
+**[steropes.corvardt.com](https://steropes.corvardt.com)**
 
 ![The instrument: a random walk drawn one step per lightning strike, beside a
 panel counting the bits collected and grading them against four statistical
@@ -13,7 +13,7 @@ tests.](og.png)
 Every strike detected anywhere on earth arrives here a few seconds later. The
 low digits of where it struck are noise from the network's own solver, far finer
 than it can really locate a flash, and nobody can predict them because nobody can
-predict when and where lightning happens. Entropic collects those digits, tests
+predict when and where lightning happens. Steropes collects those digits, tests
 them continuously in your browser, and shows the working.
 
 The page draws a random walk. Every step is one strike, somewhere on earth.
@@ -278,8 +278,8 @@ better story and a false one.
 ## Running it
 
 ```sh
-git clone https://github.com/corvardt/entropic
-cd entropic
+git clone https://github.com/corvardt/steropes
+cd steropes
 npm run dev
 ```
 
@@ -357,11 +357,11 @@ front of a volunteer's server hands back the one property the relay exists to
 protect.
 
 ```
-https://entropic.example.com,https://keraunos.example.com
+https://steropes.example.com,https://keraunos.example.com
 ```
 
 No trailing slashes. A browser's `Origin` header never carries one and the match
-is exact, so `https://entropic.example.com/` is silently refused. Until your
+is exact, so `https://steropes.example.com/` is silently refused. Until your
 origin is on the list the handshake is rejected with a 403 and the page sits on
 `[ linking ]` forever, which looks exactly like a relay that is down.
 
