@@ -118,9 +118,25 @@ testing eight hypotheses and quoting the luckiest, which trips on a clean stream
 about 8% of the time against a threshold claiming 1%.
 
 Even corrected, four tests at p<0.01 throw a false failure on roughly 4% of
-evaluations. That is what the threshold means, not a defect. The badges
-therefore need three consecutive failures before they turn over, and a single
-red badge is expected. Only a badge that stays red is telling you something.
+evaluations. That is what the threshold means, not a defect, so the badges need
+three consecutive failures before they turn over.
+
+Be clear about what that buys, because it is less than it looks. Hysteresis of
+that kind absorbs *independent* failures, and consecutive evaluations here are
+not independent: the pool is a ring the sky fills slowly, so at a couple of
+strikes a second an evaluation two seconds after the last one is grading almost
+exactly the same bytes. Three in a row is barely more evidence than one. A badge
+does not go red on a bad moment and recover — it goes red on a bad *window*, and
+stays red until the ring has turned that window over.
+
+Which is why the ring is 2KB rather than the 4KB the plan suggested off the cuff.
+The only hard floor is chi²'s, 1,280 bytes for five expected per bin; everything
+above that is bought at the price of a longer memory. At 4KB a single unlucky
+window held a badge red for 16 to 24 minutes at the rates this feed runs. At 2KB
+it is 4 to 8, with 8 expected per bin still comfortably clear of the floor.
+
+So: a red badge that clears within a few minutes is the threshold doing its job.
+One that outlives a full turnover of the ring is telling you something.
 
 ### Reading the badges
 
@@ -369,7 +385,7 @@ entitled to.
 
 ```
 src/          source.js   the socket, the dedup filter, extraction
-              pool.js     4KB ring of raw bytes, SHA-256 extraction
+              pool.js     2KB ring of raw bytes, SHA-256 extraction
               tests.js    the four tests, and the only copy of them
               spark.js    the badge trace: headroom, not p
               draw.js     the suspending byte reader, unbiased integers, and

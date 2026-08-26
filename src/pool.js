@@ -12,7 +12,24 @@
 // network changes behaviour, and it is the standard thing to do. Saying it
 // rescues the stream would be a better story and a false one.
 
-export const CAPACITY = 4096; // 4KB, per plan §2
+/**
+ * How much of the stream is under test at once, and it is a real choice rather
+ * than the round number it looks like.
+ *
+ * plan §2 said "e.g. 4KB", which is an example, and it was taken as a decision
+ * and left alone. What it actually sets is two things. It is the sample the four
+ * tests grade, where the only hard floor is chi2's: 256 bins wanting five
+ * expected each, so 1,280 bytes. And it is how long the ring takes to turn over,
+ * which is how long a single unlucky window goes on failing a badge after the
+ * sky that produced it has passed.
+ *
+ * At 4,096 that second number was 16 to 24 minutes at the rates this feed runs,
+ * which is what made "only a badge that stays red is telling you something"
+ * untrue: one bad window is exactly what a badge staying red looks like. 2,048
+ * holds 8 expected per bin, comfortably clear of the floor, and halves the time
+ * a bad window haunts the panel.
+ */
+export const CAPACITY = 2048;
 
 /**
  * Fixed-size ring. When it is full the oldest bytes are overwritten: a pool that
