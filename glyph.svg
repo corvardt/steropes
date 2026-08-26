@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- The walk at 16px: where the sky has been, and the bit that just arrived.
+       The tile carries its own ground, as Keraunos', Tyche's and Oikos' do. A
+       bare glyph has to guess the colour of the tab bar, and the only tool for
+       that is a prefers-color-scheme query inside the SVG, which browsers
+       resolve inconsistently for an icon and Safari has never been reliable
+       about. A dark tile is legible against light chrome and dark chrome alike,
+       and it is what the page looks like anyway.
+
+       The only icon in the set drawn in both inks, because it is the only one
+       whose subject is a history and an arrival at the same time. The trail is
+       rest ink under the decay rule the page applies to it, brightening toward
+       now; the head is the strike white Keraunos and Tyche are entitled to, and
+       for the same reason — it is a thing that has just happened. Oikos sits at
+       rest ink throughout because it draws a wordmark and not an event.
+
+       It turns left. A random walk drawn as a staircase says the one thing a
+       random walk never does, which is that it knows where it is going, so the
+       fourth step doubles back and the figure is a wander rather than a climb.
+
+       Drawn to die well. Below about 20px the first two segments go before the
+       tile does, and what is left is the head and the segment feeding it — the
+       arrival, which is what there is room for. Square caps and mitred joins:
+       the walk is a lattice, and nothing in this interface is rounded. -->
+  <defs>
+    <radialGradient id="bloom" cx="50%" cy="46%" r="50%">
+      <stop offset="0%" stop-color="#fff" stop-opacity="0.26" />
+      <stop offset="55%" stop-color="#fff" stop-opacity="0.06" />
+      <stop offset="100%" stop-color="#fff" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="32" height="32" rx="7" fill="#0a0a0b" />
+  <circle cx="16" cy="15" r="14" fill="url(#bloom)" />
+
+  <!-- Five steps of seven, centred on the bloom: right, up, back left, up,
+       right. Each segment one step older than the one after it, at the interval
+       the page fades its own tail by.
+
+       3.4 on a step of 7 is the whole of the weight budget. Set beside the bolt
+       and the lot this was drawn at 2.4 first and was the one icon in the set
+       that went grey at a tab bar; taken past 3.8 the two horizontal runs close
+       on each other and the figure sets into a slab. -->
+  <g fill="none" stroke="#c8c8cc" stroke-width="3.4" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M8 24 H15" stroke-opacity="0.24" />
+    <path d="M15 24 V17" stroke-opacity="0.38" />
+    <path d="M15 17 H8" stroke-opacity="0.54" />
+    <path d="M8 17 V10" stroke-opacity="0.74" />
+    <path d="M8 10 H22" stroke-opacity="1" />
+  </g>
+
+  <!-- The head, and the one mark that has to survive every size, so it is sized
+       against the bolt rather than against its own trail. Five clear of the
+       tile's edge at this height: the corner arc is the only thing on the tile
+       it could collide with, and it does not reach it. -->
+  <circle cx="22" cy="10" r="4" fill="#ffffff" />
+
+  <rect x="0.5" y="0.5" width="31" height="31" rx="6.5" fill="none" stroke="#ffffff" stroke-opacity="0.1" />
+</svg>
