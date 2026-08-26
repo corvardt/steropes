@@ -12,7 +12,17 @@ import { createReader, DRAWS, expected, keysTyped, monkey, rangeDraw, expose } f
 import { plate, exposurePlate, download } from "./art.js";
 import { render as renderBlockie, blockieDraw } from "./blockie.js";
 import { SPARK_W, SPARK_H, headroom, sparkY, trace } from "./spark.js";
-import { apply, applyPalette, current, followSystem, palette } from "./theme.js";
+import {
+  apply,
+  applyContrast,
+  applyGlass,
+  applyPalette,
+  contrast,
+  current,
+  followSystem,
+  glass,
+  palette,
+} from "./theme.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -81,6 +91,10 @@ function markSettings() {
   };
   for (const b of cfg.querySelectorAll("[data-medium-choice]")) mark(b, b.dataset.mediumChoice === current());
   for (const b of cfg.querySelectorAll("[data-palette-choice]")) mark(b, b.dataset.paletteChoice === palette());
+  for (const b of cfg.querySelectorAll("[data-contrast-choice]")) mark(b, b.dataset.contrastChoice === contrast());
+  for (const b of cfg.querySelectorAll("[data-glass-choice]")) {
+    mark(b, b.dataset.glassChoice === (glass(b.dataset.glass) ? "on" : "off"));
+  }
   document.getElementById("cfg-palette").hidden = !dark;
   document.getElementById("cfg-note").hidden = !dark;
 }
@@ -91,6 +105,12 @@ cfg.addEventListener("click", (e) => {
   if (pressed.dataset.mediumChoice) setMedium(pressed.dataset.mediumChoice);
   else if (pressed.dataset.paletteChoice) {
     applyPalette(pressed.dataset.paletteChoice);
+    markSettings();
+  } else if (pressed.dataset.contrastChoice) {
+    applyContrast(pressed.dataset.contrastChoice);
+    markSettings();
+  } else if (pressed.dataset.glassChoice) {
+    applyGlass(pressed.dataset.glass, pressed.dataset.glassChoice === "on");
     markSettings();
   } else cfg.close();
 });

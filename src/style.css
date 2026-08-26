@@ -546,6 +546,13 @@ a.ctl:hover {
   color: var(--c-text);
 }
 
+/* Two pieces of glass the reader can take off. The medium owns what they look
+   like; this only says whether the tube is wearing them. */
+:root[data-scanlines="off"] .crt-scanlines,
+:root[data-sweep="off"] .crt-sweep {
+  display: none;
+}
+
 /* ── Configuration ────────────────────────────────────────────────────────────
    The same box as the card, on the glass rather than on the stage. Everything
    modal about it — the ground behind, Escape, keeping Tab inside — is the
