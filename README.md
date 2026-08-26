@@ -4,6 +4,12 @@
 
 **Random numbers drawn from lightning, verified in front of you.**
 
+**[entropic.corvardt.com](https://entropic.corvardt.com)**
+
+![The instrument: a random walk drawn one step per lightning strike, beside a
+panel counting the bits collected and grading them against four statistical
+tests.](og.png)
+
 Every strike detected anywhere on earth arrives here a few seconds later. The
 low digits of where it struck are noise from the network's own solver, far finer
 than it can really locate a flash, and nobody can predict them because nobody can
@@ -272,114 +278,147 @@ better story and a false one.
 ## Running it
 
 ```sh
+git clone https://github.com/corvardt/entropic
+cd entropic
+npm run dev
+```
+
+Then open the page with a feed on the address:
+
+```
+http://localhost:8080/?feed=wss://ws1.blitzortung.org:443/&hello=1
+```
+
+There is nothing to install. No dependencies, no build step, no bundler — the
+repository is the site, and `npm run dev` is `python3 -m http.server`. The
+command-line tools want Node 22 or newer, which is the version that gave Node a
+global `WebSocket`; the page itself wants only a browser.
+
+That address talks straight to Blitzortung, which is the right thing for one
+person for a few minutes and the wrong thing for a deployed site. See
+[Running your own](#running-your-own) for why, and for the relay that fixes it.
+`hello` sends the subscription the feed expects, which in production the relay
+sends on your behalf.
+
+### The tools
+
+```sh
 npm test                  # the suite against the fixture and both controls
 npm run smoke             # the real modules against the live feed, 60s
-npm run analyse           # compare candidate sources in a harvest
+npm run analyse           # compare candidate bit sources in a harvest
 npm run harvest 300 > fixtures/new.jsonl
-npm run dev               # serve the page on :8080
+npm run shots             # recapture the unfurl card from a running instrument
 ```
 
-No dependencies and nothing to install. Node has had a global WebSocket since
-v22, which is all the tooling needs.
+`npm run analyse` is the one worth knowing about. It is the tool that decided
+where the entropy actually is, and it is kept runnable rather than written up
+and thrown away, because the answer is a property of the network rather than of
+this code. If Blitzortung ever change how a fix is solved, harvest a fresh
+sample and run it again.
 
-### The feed
+## Running your own
 
-The page never talks to Blitzortung directly. The relay built for Keraunos holds
-the one upstream socket and fans it out, which is what Blitzortung ask a project
-using their data to do, and both instruments read from it.
+Three things, and only the first is unusual.
 
-Its address is deployment configuration, so it sits in the document that gets
-deployed rather than compiled into a module — there is no build step here for a
-`.env` to be substituted into, which is where Keraunos keeps the same value:
+### 1. A relay, because Blitzortung ask for one
+
+The page never talks to Blitzortung directly, and neither should yours.
+Blitzortung is a volunteer network — people who bought a receiver and put it on
+their roof — and they ask that a project using their data serve it from its own
+server rather than pointing every visitor at theirs. One socket upstream,
+however many readers.
+
+The relay is a Cloudflare Worker and it lives in the
+[Keraunos](https://github.com/corvardt/keraunos) repository under `relay/`,
+because both instruments read from the same one. Deploy it and you get a
+hostname:
+
+```sh
+cd relay && npm run deploy
+```
+
+Then tell the page where it is. There is no build step here for a `.env` to be
+substituted into, so the address lives in the document that actually gets
+deployed:
 
 ```html
-<meta name="feed" content="wss://keraunos-relay.covardt.workers.dev/feed" />
+<meta name="feed" content="wss://your-relay.example.workers.dev/feed" />
 ```
 
-`?feed=wss://…` overrides it. For development,
-`?feed=wss://ws1.blitzortung.org:443/&hello=1` talks straight to the upstream
-without a relay in the way, where `hello` sends the subscription the relay would
-otherwise send on your behalf. Against the relay no `hello` is sent, because it
-subscribes itself; sending a second one would be a duplicate subscription.
+`?feed=wss://…` on the address overrides it, which is how development points
+straight at the upstream instead.
 
-**The relay decides which origins it carries.** Its `ALLOWED_ORIGINS` is a
-comma-separated list, and unset it answers anybody, which is what a local
-`wrangler dev` wants and what a public deployment does not — an open relay in
+### 2. Let the relay carry your origin
+
+The relay's `ALLOWED_ORIGINS` is a comma-separated, exact-match list of the
+origins it will serve. Unset, it answers anybody — which is what a local
+`wrangler dev` wants, and what a public deployment must not be: an open relay in
 front of a volunteer's server hands back the one property the relay exists to
-protect. So Entropic's origin has to be added to it, alongside Keraunos's. Until
-it is, the handshake is refused with a 403 and the bezel sits on `[ linking ]`
-forever, which looks exactly like a relay that is down.
-
-## Deploying
-
-There is no build step, which is the point. The repository *is* the site: point
-Cloudflare Pages at it with an empty build command and the root as the output
-directory, and what gets served is what is committed.
-
-That is a deliberate trade and worth stating plainly, because it is the opposite
-of what the two React projects in the set do. Vite exists in Keraunos and Tyche
-to compile JSX; nothing here needs compiling, and bundling would cost the one
-property this page is built to have — a reader can open devtools on the deployed
-site and read the same `tests.js` that is grading the stream, comments intact.
-Minified into a hashed bundle, "verified in front of you" becomes a claim rather
-than something you can check. Oikos, the other project in the set with no JSX,
-ships raw for the same reason.
-
-The bill for that is stable filenames, and `_headers` pays it: the fonts are held
-forever, everything else revalidates. Without it a returning reader can run last
-week's tests while this week's badges vouch for them.
-
-Two things are not in this repository and have to be done once:
-
-**Add the origin to the relay.** `ALLOWED_ORIGINS` on the Keraunos relay worker
-is a comma-separated exact-match list of the origins it will carry, and unset it
-answers anybody — an open relay in front of a volunteer's server, which is the
-one thing the relay exists to prevent. It currently holds Keraunos alone, so
-Entropic's origin has to be appended:
+protect.
 
 ```
-https://keraunos.corvardt.com,https://entropic.corvardt.com
+https://entropic.example.com,https://keraunos.example.com
 ```
 
-No trailing slashes: a browser's `Origin` header never carries one, and the
-match is exact, so `https://entropic.corvardt.com/` is silently refused. Until
-the origin is on the list the handshake is rejected with a 403 and the bezel
-sits on `[ linking ]`, which looks exactly like a relay that is down.
+No trailing slashes. A browser's `Origin` header never carries one and the match
+is exact, so `https://entropic.example.com/` is silently refused. Until your
+origin is on the list the handshake is rejected with a 403 and the page sits on
+`[ linking ]` forever, which looks exactly like a relay that is down.
 
-**Nothing else.** The icons and the unfurl card ship with the repository.
+Note that a Pages preview deployment is a *different* origin from your custom
+domain, and will be refused unless you add it too.
 
-### The card
+### 3. Serve the repository
+
+There is no build step, which is the point. Point Cloudflare Pages at the repo:
+
+| setting | value |
+| --- | --- |
+| framework preset | None |
+| build command | *(empty)* |
+| build output directory | `/` |
+
+Any static host works; `_headers` is Pages-specific and the rest is plain files.
+
+**Why no bundler.** Nothing here needs compiling — no JSX, no TypeScript, just
+ES modules a browser already runs. Bundling would also cost the one property the
+page is built to have: open devtools on the deployed site and you can read the
+same `tests.js` that is grading the stream, comments intact. Minified into a
+hashed bundle, "verified in front of you" stops being something anyone can
+check.
+
+The bill for that is stable filenames, and `_headers` pays it: the fonts are
+held indefinitely, everything else revalidates. Without it a returning reader
+runs last week's tests while this week's badges vouch for them.
+
+### The card and the icon
 
 `og.png` is captured from the running instrument rather than drawn:
 
 ```sh
-npm run shots                    # 1200x630 from production, after a 2min soak
-npm run shots -- --soak 420      # long enough for chi2 to stop waiting
-npm run shots -- --url http://localhost:8080/?feed=wss://…
+npm run shots                                      # from production
+npm run shots -- --soak 420                        # until chi2 stops waiting
+npm run shots -- --url "http://localhost:8080/?feed=wss://…"
 ```
 
 It has to be regenerable, because what it shows is the weather on the morning it
 was taken. A screenshot pasted in once decays quietly — the palette moves, a
-readout is renamed, a badge gains a column — and the card keeps advertising an
+readout is renamed, a badge gains a column — and the card goes on advertising an
 instrument that no longer exists.
 
 The soak is the whole difficulty. A page grabbed on load is an empty grid and a
 fair picture of nothing, so the shot waits: about 20s before the walk has been
-anywhere, 40s before monobit, runs and serial have their 500 bits, and around
-four minutes before chi2 has the 1,280 bytes it needs to stop reporting that it
+anywhere, 40s before monobit, runs and serial have their 500 bits, and about
+four minutes before chi² has the 1,280 bytes it needs to stop reporting that it
 is still counting.
 
-Keraunos does this with puppeteer-core. This project has no dependencies and
-says so on the tin, so `tools/shots.mjs` speaks CDP over the WebSocket Node has
-had since v22 — the same one the rest of the tooling already leans on. Sixty
-lines, and nothing to install.
+`tools/shots.mjs` drives Chrome over the DevTools Protocol using the WebSocket
+Node has had since v22, rather than pulling in a browser-automation dependency
+for a script that runs a few times a year. Sixty lines, nothing to install.
 
-The icons are in `/home/crv/Documents/icons` with the rest of the set's, and
-carry its grammar: a dark tile with its own ground, the bloom, a hairline edge,
-one figure. Entropic's is the only one drawn in both inks, because it is the
-only page whose subject is a history and an arrival at once — the trail at rest
-ink under the decay rule, the head at the strike white Keraunos and Tyche are
-entitled to.
+`glyph.svg` is the favicon and `apple-touch-icon.png` is the same figure squared
+and bled, because iOS masks its own corners and rounding it here would round it
+twice.
 
 ## Layout
 
@@ -398,7 +437,7 @@ src/          source.js   the socket, the dedup filter, extraction
               style.css   this instrument's own; the medium is crt.css
 crt.css       the shared medium: palette, type, glass, decay. Carried verbatim
               from Keraunos by way of Oikos, so the whole set is one instrument
-_headers      cache policy. Stable filenames need one; see Deploying
+_headers      cache policy. Stable filenames need one; see above
 fonts/        IBM Plex Mono, served from this origin rather than from Google
 tools/        check.mjs   npm test
               smoke.mjs   npm run smoke
@@ -406,10 +445,11 @@ tools/        check.mjs   npm test
               harvest.mjs npm run harvest
               shots.mjs   npm run shots, the unfurl card from the real thing
 glyph.svg     the favicon. apple-touch-icon.png is the same, squared and bled
-og.png        the card. Captured, not drawn; see Deploying
+og.png        the card. Captured, not drawn; `npm run shots`
 fixtures/     strikes.jsonl   3,738 deduplicated strikes, the sample every
                               figure above was measured against
-plan.md       the build order, and the record of what changed and why
+plan.md       the build order this was written against, kept as the
+              record of what changed and why
 ```
 
 `tests.js` is imported by both the page and the tools on purpose. It used to be
@@ -420,9 +460,23 @@ had already stopped using.
 ## Credit
 
 Strikes from the [Blitzortung](https://www.blitzortung.org/) network, a
-volunteer-run system of receivers, by way of the relay built for
-[Keraunos](https://keraunos.corvardt.com). Blitzortung ask that a project using
-their data serve it from its own server rather than theirs, and the relay is how
-both instruments do that: one socket upstream, however many readers.
+volunteer-run system of receivers built and hosted by people who bought the
+hardware themselves. They ask that a project using their data serve it from its
+own server rather than theirs, and the relay is how that is done here: one
+socket upstream, however many readers.
 
-The same sky, counted by one and drawn from by the other.
+The relay was built for [Keraunos](https://github.com/corvardt/keraunos), which
+plots the same feed as weather. Both instruments read from it, and the palette,
+type and glass are carried between them verbatim so they read as one set. The
+same sky, counted by one and drawn from by the other.
+
+The identicon's tile rules come from [Tyche](https://github.com/corvardt/tyche),
+by way of the classic ethereum-blockies construction.
+
+## Licence
+
+None yet — no `LICENSE` file has been chosen, so default copyright applies and
+nobody has permission to reuse this. If you want to build on it, open an issue.
+
+Blitzortung's data is theirs and carries its own terms; nothing here grants any
+rights to it.
