@@ -143,33 +143,45 @@
         <button type="button" id="cfg-close" aria-label="Close">[ esc ]</button>
       </div>
 
+      <!-- The tube, then what is in front of it: the same groups in the same
+           order the set's other instruments carry, so a reader who has set one
+           of them is not looking for anything twice. -->
       <section class="group">
-        <div class="group-head"><span>medium</span></div>
-        <div class="choices" id="cfg-medium">
-          <button type="button" class="ctl" data-medium-choice="dark">dark</button>
-          <button type="button" class="ctl" data-medium-choice="light">light</button>
+        <div class="group-head"><span>tube</span></div>
+
+        <!-- The medium is on the bezel as well, because it is the one setting
+             anyone comes back to. -->
+        <div class="set">
+          <span>medium</span>
+          <div class="choices" id="cfg-medium">
+            <button type="button" class="ctl" data-medium-choice="dark">dark</button>
+            <button type="button" class="ctl" data-medium-choice="light">light</button>
+          </div>
         </div>
 
         <!-- Absent on paper rather than disabled: a coating is a property of a
              tube, and paper has one ink. -->
-        <div class="choices" id="cfg-palette">
-          <button type="button" class="ctl" data-palette-choice="white">white</button>
-          <button type="button" class="ctl" data-palette-choice="oil">oil</button>
-          <button type="button" class="ctl" data-palette-choice="crimson">crimson</button>
-          <button type="button" class="ctl" data-palette-choice="demon">demon</button>
+        <div class="set" id="cfg-phosphor">
+          <span>phosphor</span>
+          <div class="choices" id="cfg-palette">
+            <button type="button" class="ctl" data-palette-choice="white">white</button>
+            <button type="button" class="ctl" data-palette-choice="oil">oil</button>
+            <button type="button" class="ctl" data-palette-choice="crimson">crimson</button>
+            <button type="button" class="ctl" data-palette-choice="demon">demon</button>
+          </div>
         </div>
         <p class="note" id="cfg-note">
           The phosphor the tube is coated with. <b>white</b> is no coating at all.
         </p>
-      </section>
 
-      <section class="group">
-        <div class="group-head"><span>contrast</span></div>
-        <div class="choices" id="cfg-contrast">
-          <button type="button" class="ctl" data-contrast-choice="soft">soft</button>
-          <button type="button" class="ctl" data-contrast-choice="normal">normal</button>
-          <button type="button" class="ctl" data-contrast-choice="hard">hard</button>
-          <button type="button" class="ctl" data-contrast-choice="max">max</button>
+        <div class="set">
+          <span>contrast</span>
+          <div class="choices" id="cfg-contrast">
+            <button type="button" class="ctl" data-contrast-choice="soft">soft</button>
+            <button type="button" class="ctl" data-contrast-choice="normal">normal</button>
+            <button type="button" class="ctl" data-contrast-choice="hard">hard</button>
+            <button type="button" class="ctl" data-contrast-choice="max">max</button>
+          </div>
         </div>
         <p class="note">
           How far every mark sits from the ground it is drawn on. One factor for
@@ -178,20 +190,36 @@
       </section>
 
       <section class="group">
-        <div class="group-head"><span>scanlines</span></div>
-        <div class="choices" id="cfg-scanlines">
-          <button type="button" class="ctl" data-glass="scanlines" data-glass-choice="on">on</button>
-          <button type="button" class="ctl" data-glass="scanlines" data-glass-choice="off">off</button>
+        <div class="group-head"><span>screen</span></div>
+        <div class="set">
+          <span>scanlines</span>
+          <div class="choices" id="cfg-scanlines">
+            <button type="button" class="ctl" data-glass="scanlines" data-glass-choice="on">on</button>
+            <button type="button" class="ctl" data-glass="scanlines" data-glass-choice="off">off</button>
+          </div>
+        </div>
+        <div class="set">
+          <span>refresh sweep</span>
+          <div class="choices" id="cfg-sweep">
+            <button type="button" class="ctl" data-glass="sweep" data-glass-choice="on">on</button>
+            <button type="button" class="ctl" data-glass="sweep" data-glass-choice="off">off</button>
+          </div>
         </div>
       </section>
 
-      <section class="group">
-        <div class="group-head"><span>refresh sweep</span></div>
-        <div class="choices" id="cfg-sweep">
-          <button type="button" class="ctl" data-glass="sweep" data-glass-choice="on">on</button>
-          <button type="button" class="ctl" data-glass="sweep" data-glass-choice="off">off</button>
-        </div>
-      </section>
+      <!-- The panel's own glass. A modal dialog is drawn in the top layer,
+           above every z-index on the page, so the one thing the glass over the
+           page cannot reach is this sheet. This is the same four layers over
+           the same viewport, drawn from inside the top layer instead; the one
+           on the page is hidden while it shows, so there is still only ever one
+           pane of glass. Its animations are wound forward to the page's on the
+           way in, or the sweep would restart every time the panel opened. -->
+      <div class="crt" id="cfg-glass" aria-hidden="true">
+        <div class="crt-drift"></div>
+        <div class="crt-sweep"></div>
+        <div class="crt-scanlines"></div>
+        <div class="crt-vignette"></div>
+      </div>
     </dialog>
 
     <main class="panel">

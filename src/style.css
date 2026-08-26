@@ -375,6 +375,7 @@ a.ctl:hover {
 .row > span,
 .test .name,
 .bar-range label,
+.set > span,
 .card-label {
   font-size: 10px;
   line-height: 14px;
@@ -546,6 +547,12 @@ a.ctl:hover {
   color: var(--c-text);
 }
 
+/* One pane at a time: the sheet carries its own, and it covers the same
+   viewport from inside the top layer. */
+body:has(.sheet[open]) > .crt {
+  visibility: hidden;
+}
+
 /* Two pieces of glass the reader can take off. The medium owns what they look
    like; this only says whether the tube is wearing them. */
 :root[data-scanlines="off"] .crt-scanlines,
@@ -627,6 +634,29 @@ a.ctl:hover {
   flex: 1;
   height: 1px;
   background: var(--c-line);
+}
+
+/* The name of a setting, and its control: caps label on the left, the choices
+   right-aligned to the edge every other row in the panel ends at. The shape
+   every instrument in the set presents a setting in. */
+.set {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.375rem 0;
+}
+
+.set > span {
+  flex-shrink: 0;
+}
+
+/* Wrapping rather than overflowing: four choices beside their own name do not
+   always fit, and a row running off the edge of the panel is worse than a
+   second line. */
+.set .choices {
+  justify-content: flex-end;
+  margin-top: 0;
 }
 
 /* Bare labels, not boxes. Every control in the set is a small caps word that

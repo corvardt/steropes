@@ -95,7 +95,7 @@ function markSettings() {
   for (const b of cfg.querySelectorAll("[data-glass-choice]")) {
     mark(b, b.dataset.glassChoice === (glass(b.dataset.glass) ? "on" : "off"));
   }
-  document.getElementById("cfg-palette").hidden = !dark;
+  document.getElementById("cfg-phosphor").hidden = !dark;
   document.getElementById("cfg-note").hidden = !dark;
 }
 
@@ -122,9 +122,24 @@ cfg.addEventListener("mousedown", (e) => {
   if (e.target === cfg) cfg.close();
 });
 
+/* The sheet's glass is display:none until the dialog opens, so its sweep and
+   its drift start from zero every time. Wound forward to where the page's own
+   glass has got to, the pane the reader was already looking at simply carries
+   on: the markup is identical, so the animations come back in the same order. */
+const pageGlass = document.querySelector("body > .crt");
+const sheetGlass = document.getElementById("cfg-glass");
+
+function syncGlass() {
+  const page = pageGlass.getAnimations({ subtree: true });
+  sheetGlass.getAnimations({ subtree: true }).forEach((animation, i) => {
+    if (page[i]) animation.currentTime = page[i].currentTime;
+  });
+}
+
 document.getElementById("cfg-open").addEventListener("click", () => {
   markSettings();
   cfg.showModal();
+  syncGlass();
 });
 
 label(current());
