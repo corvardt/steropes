@@ -481,9 +481,20 @@ a.ctl:hover {
   letter-spacing: 0.02em;
 }
 
-/* The monkey's gibberish recedes so the word it stumbled into is the reading. */
-.result.typing span {
+/* The monkey's paper. The gibberish recedes so the words it stumbled into are
+   the reading, and the sheet scrolls rather than growing without end: a run
+   left going for an hour is several thousand keys long. */
+.result.typing {
   color: var(--c-dim);
+  max-height: 40vh;
+  overflow-y: auto;
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+.result.typing b {
+  color: var(--c-strike);
+  font-weight: 600;
 }
 
 /* Fifty-two cards want to be countable at a glance. */

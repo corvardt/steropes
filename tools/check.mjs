@@ -12,7 +12,8 @@ import { readFileSync } from "node:fs";
 import { runAll, controlGood, controlRigged, seeded, MIN_BITS } from "../src/tests.js";
 import { createFilter, lowByte, parseFrame, SPACING_NS } from "../src/source.js";
 import { createPool, toBits, condition } from "../src/pool.js";
-import { createReader, below, between, shuffle, uuid, monkey, DECK, KEYS, WORDS, expose } from "../src/draw.js";
+import { createReader, below, between, shuffle, uuid, monkey, keysTyped, DECK, KEYS, LENGTHS, expose } from "../src/draw.js";
+import { WORDS } from "../src/words.js";
 import { blockie } from "../src/blockie.js";
 import { SPARK_H, headroom, sparkY, trace } from "../src/spark.js";
 
@@ -195,12 +196,29 @@ console.log("\ndraws");
 
   // The monkey. A byte below 243 is its own key index, so these spell it out.
   const key = (c) => KEYS.indexOf(c);
-  const typed = await monkey(feed([key("q"), key("z"), key("t"), key("h"), key("e"), key("x")]));
-  check(typed.typed === "qzthe", `the monkey stops on the word, not after it: ${typed.typed}`);
-  check(typed.word === "the" && typed.typed.endsWith(typed.word), "and the hit is the tail of what it typed");
+  const types = async (text, length) => {
+    const run = monkey(feed([...text].map(key)), null, length);
+    await new Promise((r) => setTimeout(r, 0)); // let it type what it was fed
+    run.stop();
+    return run.done;
+  };
+
+  const paper = await types("qzthexx", 3);
   check(
-    [...WORDS].every((w) => w.length >= 3 && /^[a-z]+$/.test(w)),
-    "every word is typeable on the twenty-seven keys and long enough to be a wait"
+    paper.found.length === 1 && paper.found[0].word === "the" && paper.found[0].miss === "qz",
+    `the monkey separates the word from the gibberish before it: ${JSON.stringify(paper.found)}`
+  );
+  check(paper.pending === "xx", "and starts the next word from the next key, not from the one it just found");
+  check(keysTyped(paper) === 7, `every key is on the paper, hits included: ${keysTyped(paper)}`);
+
+  // The selected length is exact. "that" contains "hat", and a four-letter run
+  // that stopped on it would be a three-letter run wearing a longer label.
+  check((await types("zthatz", 4)).found[0]?.word === "that", "a four-letter monkey takes the four-letter word");
+  check((await types("zhatz", 4)).found.length === 0, "and walks past the three-letter one inside it");
+
+  check(
+    LENGTHS.every((n) => [...WORDS[n].split(/\s+/)].every((w) => w.length === n && /^[a-z]+$/.test(w))),
+    `every word is typeable on the twenty-seven keys and filed under its own length, ${LENGTHS.join("/")}`
   );
 
   // Provenance has to name the strikes that actually decided it.

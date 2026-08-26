@@ -179,7 +179,7 @@ transform nobody can run is a transform nobody can check.
 ## Drawing from it
 
 A coin, a d6, a d20, an integer in any range, a UUID, a shuffled deck, a plate
-of generative art, and a blockie.
+of generative art, a blockie, and a monkey.
 
 A draw does not read the pool. It waits for strikes that have not happened yet
 and is answered by the first ones that do, which is why every result carries the
@@ -209,6 +209,25 @@ picture arriving at different speeds. The caption carries the window, the strike
 count and the rate that implies, so the plate is a reading as well as a figure.
 Closing the shutter early keeps what has arrived, because a fifteen-minute
 window nobody can get out of is a window nobody will open.
+
+The **monkey** is the other window, and the one that never closes on its own. It
+types one key per strike on a keyboard of twenty-six letters and a space, and it
+stops when you stop it. Every time the last few keys spell a word it is marked
+on the paper, and the gibberish around it, which is all of it, is left dim.
+
+The choice is the word length, and it is the theorem rather than a setting. Each
+extra letter multiplies the arrangements by twenty-seven while the dictionary
+grows nowhere near as fast, so the wait goes up about fourteen fold a letter:
+665 three-letter words out of 19,683 arrangements is a hit every 30 keys, 2,442
+four-letter words out of 531,441 is one every 218, and 4,667 five-letter words
+out of 14.3 million is one every 3,075 — half an hour of sky at the rates this
+feed runs. Six letters would be most of a day, which is why the dictionary stops
+at five. The list is `/usr/share/dict/american-english` as it comes: whatever
+the sky spells, it spells.
+
+That is the demonstration. A monkey typing for an afternoon can be watched
+producing not one sentence, and the arithmetic that separates 30 keys from a day
+is the same arithmetic that separates a day from the age of the universe.
 
 A draw outlives its card. Dismissing one leaves it collecting, and the top row
 of the history is the way back to it; a long exposure that could only be watched

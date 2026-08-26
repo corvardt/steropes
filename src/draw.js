@@ -11,6 +11,8 @@
 // out. Rejection sampling means the number of bytes a draw needs is not known in
 // advance, so the reader has to be pull-based rather than a fixed allocation.
 
+import { WORDS } from "./words.js";
+
 /**
  * A byte queue that suspends. Each byte remembers the strike it came from, so a
  * finished draw can say exactly which strikes it consumed rather than guessing
@@ -122,58 +124,86 @@ export async function uuid(reader) {
 
 // ── the monkey ───────────────────────────────────────────────────────────────
 //
-// Borel's monkey at a typewriter, with the sky's hand on the keys. It types one
-// key per strike and stops the first time the stream spells a word, which is
-// the theorem run at the only scale a page can afford: not Hamlet, one word.
+// Borel's monkey at a typewriter, with the sky's hand on the keys. One key per
+// strike, and it does not stop: like the exposure it is a window rather than an
+// allocation, and it runs until you close it.
 //
-// The wait is the argument. Three letters is 27^3 = 19,683 arrangements, and
-// with this many words in the list a hit lands every 57 keys on average, so the
-// monkey is legibly slow at a thing a person does without thinking. Multiply
-// the wait by 19,683 for every further letter and the full line stops being a
-// long wait and starts being a number with no time in it.
+// It ends on nothing because the theorem does not either. Three letters is
+// 27^3 = 19,683 arrangements, and with this many words in the list a hit lands
+// every 57 keys on average, which is legibly slow at a thing a person does
+// without thinking. Multiply that wait by 19,683 for every further letter and
+// the full line stops being a long wait and starts being a number with no time
+// in it. The paper filling with almost-nothing is the demonstration; the words
+// it does stumble into are the ration of luck it gets for the whole afternoon.
 
 /** The keyboard: twenty-six letters and the space bar, no shift, no punctuation. */
 export const KEYS = "abcdefghijklmnopqrstuvwxyz ";
 
-/**
- * What counts as a word. Three letters carries the hit rate: every entry longer
- * than that is a thousand times rarer and is here for the day it lands.
- */
-export const WORDS = new Set(
-  `act add ado age ago aid ail aim air ale all and ant any ape apt arm art ask asp ate awe axe aye
-   bad bag ban bar bat bay bed bee beg bet bid big bit boy bow box bud bug but buy
-   can cap car cat cry cup cur cut day den dew did die dim din dip doe dog don dot dry due dun
-   ear eat ebb egg eke elf ell elm end err eve ewe eye fad fan far fat fee few fie fig fin fir fit fix
-   fly foe fog fop for fox fro fry fur gap gay get gig gin god got gun gut had hag ham hap hat hay
-   hem hen her hew hid hie him hip his hit hoe hog hot how hue hug hum hut ice ill imp ink inn ire irk its ivy
-   jar jaw jay jet job jot joy keg key kid kin kit lad lag lap law lay lea led leg lie lip lit lop lot low
-   mad man map mar mat maw may men met mew mid mob mop mow mud mug nag nap nay net new nib nip nod nor not now nun nut
-   oak oar oat odd ode off oft oil old one orb ore our out owe owl own
-   pan par paw pay pea peg pen pet pew pie pig pin pit ply pod pot pox pry pun pup put
-   rag ram ran rap rat raw ray red rib rid rim rip rob rod roe rot row rub rue rug rum run rut
-   sad sag sap sat saw say sea see set sew she shy sin sip sir sit six sky sly sob sod son sop sow spy sty sum sun sup
-   tan tap tar tax tea ten the thy tie tin tip toe ton too top tow toy try tub tug two urn use
-   van vat vex vie vow wag wan war was wax way web wed wee wet who why wig win wit woe won woo wry
-   yea yes yet yew yon you
-   alas dost doth fain hark hath lady lord love sire thee thou will word`.split(/\s+/)
-);
+/** The word lengths on offer, and the dictionary for each, built once on first use. */
+export const LENGTHS = Object.keys(WORDS).map(Number);
+const sets = {};
+const wordsOf = (n) => (sets[n] ??= new Set(WORDS[n].split(/\s+/)));
 
 /**
- * Type until the tail of the stream is a word. Shortest match first, so a hit
- * is reported at the length that actually earned it rather than at whatever
- * longer window happens to contain one.
+ * Keys per hit, on average: the arrangements of n letters divided by the ones
+ * that spell something. This is the theorem's whole shape, and it is why the
+ * page offers three lengths rather than one — 30 keys, 218, 3,073, each step a
+ * factor of fourteen, and a fourth letter nobody would wait out.
  */
-export async function monkey(reader, words = WORDS) {
-  const longest = Math.max(...[...words].map((w) => w.length));
-  let typed = "";
-  for (;;) {
-    typed += KEYS[await below(reader, KEYS.length)];
-    for (let n = 3; n <= longest && n <= typed.length; n++) {
-      const tail = typed.slice(-n);
-      if (words.has(tail)) return { typed, word: tail };
+export const expected = (n) => 27 ** n / wordsOf(n).size;
+
+/**
+ * Type until stopped, handing every key to `onKey` as it lands.
+ *
+ * The paper comes back as `found`, a run of `{ miss, word }` where the miss is
+ * the gibberish that preceded the word, plus `pending`, whatever has been typed
+ * since the last hit. Kept in that shape rather than as one string so the page
+ * can dim the misses without searching the text again for the words it already
+ * knows it found.
+ *
+ * One length at a time, exactly, not "n or more": mixing lengths would hide the
+ * thing worth seeing, since three-letter words are fourteen times commoner than
+ * four and would be nearly every hit on a sheet that claimed to be hunting
+ * longer ones. A hit clears the buffer, so the next word starts from the next
+ * key rather than borrowing letters from the one just found.
+ */
+export function monkey(reader, onKey, length = 3) {
+  const words = wordsOf(length);
+  const found = [];
+  let pending = "";
+  let running = true;
+  let cut;
+
+  const closed = new Promise((resolve) => {
+    cut = () => {
+      if (!running) return;
+      running = false;
+      resolve();
+    };
+  });
+
+  (async () => {
+    while (running) {
+      const key = KEYS[await below(reader, KEYS.length)];
+      // The monkey can be stopped while this is suspended, and a key that
+      // arrives after that belongs to nobody.
+      if (!running) break;
+      pending += key;
+      const tail = pending.slice(-length);
+      if (tail.length === length && words.has(tail)) {
+        found.push({ miss: pending.slice(0, -length), word: tail });
+        pending = "";
+      }
+      onKey?.(found, pending);
     }
-  }
+  })();
+
+  return { stop: cut, done: closed.then(() => ({ found, pending })) };
 }
+
+/** Every key on the paper, hits included. */
+export const keysTyped = ({ found, pending }) =>
+  found.reduce((n, f) => n + f.miss.length + f.word.length, 0) + pending.length;
 
 /** Thirty-two fresh bytes, as hex. The seed the artwork is drawn from. */
 export async function seed(reader, bytes = 32) {
@@ -268,15 +298,6 @@ export const DRAWS = {
     strikes: 26,
     kind: "deck",
     run: (r) => shuffle(r, DECK),
-  },
-  monkey: {
-    label: "monkey",
-    // A mean rather than a floor: measured at 57 keys to a hit over 200 runs,
-    // near enough one byte a key, two bytes a strike. The one draw here that
-    // can genuinely run long, which is the theorem showing through the bar.
-    strikes: 30,
-    kind: "monkey",
-    run: monkey,
   },
   art: {
     label: "artwork",

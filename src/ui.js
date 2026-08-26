@@ -8,7 +8,7 @@
 import { createSource } from "./source.js";
 import { createPool, toBits, condition, BLOCK_BYTES } from "./pool.js";
 import { runAll, TESTS, MIN_BITS, CHI2_MIN_BYTES, controlRigged } from "./tests.js";
-import { createReader, DRAWS, rangeDraw, expose } from "./draw.js";
+import { createReader, DRAWS, expected, keysTyped, monkey, rangeDraw, expose } from "./draw.js";
 import { plate, exposurePlate, download } from "./art.js";
 import { render as renderBlockie, blockieDraw } from "./blockie.js";
 import { SPARK_W, SPARK_H, headroom, sparkY, trace } from "./spark.js";
@@ -575,7 +575,7 @@ function waiting() {
   // ungated it stamped a progress bar over the plate as fast as the plate could
   // draw itself, and reported "70 of ~1 strike" doing it, because a window has
   // no target count to be a fraction of.
-  if (!draw || draw.spec.kind === "exposure") return;
+  if (!draw || draw.spec.kind === "exposure" || draw.spec.kind === "monkey") return;
   const have = draw.reader.provenance().strikes;
   const need = draw.spec.strikes ?? 1;
   const perSec = recent.length / 30;
@@ -598,6 +598,33 @@ function action(label, fn) {
   b.textContent = label;
   b.onclick = fn;
   return b;
+}
+
+/**
+ * The monkey's sheet of paper. Keys are appended rather than the paragraph
+ * rebuilt: a run left going all afternoon has thousands of them, and redrawing
+ * the whole sheet on every key would make the page slower the longer you watch.
+ */
+function typewriter() {
+  const sheet = document.createElement("p");
+  sheet.className = "result mono typing";
+  const tail = document.createTextNode("");
+  sheet.append(tail);
+  let shown = 0;
+
+  return {
+    sheet,
+    type(found, pending) {
+      for (; shown < found.length; shown++) {
+        const hit = document.createElement("b");
+        hit.textContent = found[shown].word;
+        sheet.insertBefore(document.createTextNode(found[shown].miss), tail);
+        sheet.insertBefore(hit, tail);
+      }
+      tail.data = pending;
+      sheet.scrollTop = sheet.scrollHeight;
+    },
+  };
 }
 
 function present(spec, value, prov, again) {
@@ -625,21 +652,10 @@ function present(spec, value, prov, again) {
     actions.append(action("save the plate", () => download(canvas, `steropes-${hex.slice(0, 8)}.png`)));
     actions.append(action("copy the seed", () => navigator.clipboard?.writeText(hex)));
   } else if (spec.kind === "monkey") {
-    const p = document.createElement("p");
-    p.className = "result mono typing";
-    const miss = document.createElement("span");
-    miss.textContent = value.typed.slice(0, -value.word.length);
-    const hit = document.createElement("b");
-    hit.textContent = value.word;
-    p.append(miss, hit);
-    out.append(p);
-
-    const odds = document.createElement("p");
-    odds.className = "prov";
-    odds.textContent = `${value.typed.length} keys for "${value.word}", which one arrangement in ${(27 ** value.word.length).toLocaleString("en")} spells`;
-    out.append(odds);
-
-    actions.append(action("copy", () => navigator.clipboard?.writeText(value.typed)));
+    const paper = typewriter();
+    paper.type(value.found, value.pending);
+    out.append(paper.sheet);
+    actions.append(action("copy", () => navigator.clipboard?.writeText(paper.sheet.textContent)));
   } else if (spec.kind === "deck") {
     const ul = document.createElement("ul");
     ul.className = "deck";
@@ -676,7 +692,10 @@ function summarise(spec, value) {
   if (spec.kind === "exposure") return `${value.length} bytes`;
   if (spec.kind === "art" || spec.kind === "blockie") return "drawn";
   if (spec.kind === "deck") return `${value[0]} off the top`;
-  if (spec.kind === "monkey") return `"${value.word}" in ${value.typed.length} keys`;
+  if (spec.kind === "monkey") {
+    const words = value.found.length;
+    return words ? `${words} word${words === 1 ? "" : "s"}: ${value.found.map((f) => f.word).join(" ")}` : "not one word";
+  }
   return String(value);
 }
 
@@ -754,6 +773,7 @@ renderHistory();
 
 async function begin(spec) {
   if (draw) return;
+  if (spec.kind === "monkey") return beginMonkey(spec.length);
   draw = { reader: createReader(), spec };
   renderHistory();
 
@@ -776,6 +796,70 @@ async function begin(spec) {
 
   remember(spec, value, prov);
   present(spec, value, prov, () => begin(spec));
+  if (!card.hidden) $("card-close").focus();
+}
+
+// ── the monkey ───────────────────────────────────────────────────────────────
+//
+// The other open-ended draw. Like the exposure it has no target to be a
+// fraction of, so it gets no progress bar: what it shows while it runs is the
+// paper, which is the point of it.
+
+async function beginMonkey(length) {
+  if (draw) return;
+  const spec = { label: `monkey · ${length} letters`, kind: "monkey", length };
+  const reader = createReader();
+  draw = { reader, spec };
+  renderHistory();
+
+  card.hidden = false;
+  $("draw-label").textContent = spec.label;
+  for (const b of buttons()) b.disabled = true;
+
+  out.innerHTML = "";
+  const note = document.createElement("p");
+  note.className = "prov open";
+  out.append(note);
+
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  let run;
+  actions.append(action("stop the monkey", () => run.stop()));
+  out.append(actions);
+
+  const paper = typewriter();
+  out.append(paper.sheet);
+
+  // What it is costing, against what a word of this length costs on average.
+  // A sheet with no words on it is the expected sight for the first few hundred
+  // keys of a five-letter run, and saying so is the difference between a page
+  // that is working and a page that looks stuck.
+  const par = Math.round(expected(length));
+  const tally = (value) => {
+    const keys = keysTyped(value);
+    const words = value.found.length;
+    note.textContent = `typing · ${keys} key${keys === 1 ? "" : "s"} · ${words} word${words === 1 ? "" : "s"} · one every ~${par.toLocaleString("en")} keys at ${length} letters`;
+  };
+  tally({ found: [], pending: "" });
+
+  run = monkey(reader, (found, pending) => {
+    paper.type(found, pending);
+    tally({ found, pending });
+  }, length);
+
+  const value = await run.done;
+  const prov = reader.provenance();
+  draw = null;
+  for (const b of buttons()) b.disabled = false;
+
+  note.className = "prov";
+  note.textContent = `${keysTyped(value)} keys · ${prov.strikes} strike${prov.strikes === 1 ? "" : "s"} · ${summarise(spec, value)}`;
+  actions.innerHTML = "";
+  actions.append(action("copy", () => navigator.clipboard?.writeText(paper.sheet.textContent)));
+  actions.append(action("another monkey", () => beginMonkey(length)));
+
+  remember(spec, value, prov);
+  report(`${spec.label}: ${summarise(spec, value)}`);
   if (!card.hidden) $("card-close").focus();
 }
 
@@ -877,6 +961,11 @@ async function beginExposure(minutes) {
   report(`${spec.label}: ${prov.strikes} strikes · ${bytes.length} bytes`);
   if (!card.hidden) $("card-close").focus();
 }
+
+$("monkey-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  beginMonkey(Number($("monkey-len").value));
+});
 
 $("expose-form").addEventListener("submit", (e) => {
   e.preventDefault();
