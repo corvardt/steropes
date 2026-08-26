@@ -70,7 +70,7 @@ export function plate(bytes, provenance, ink) {
   ctx.beginPath();
   ctx.arc(...px(pts[0]), 7, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = ink("--c-hot");
+  ctx.fillStyle = ink("--c-strike");
   ctx.beginPath();
   ctx.arc(...px(pts[pts.length - 1]), 7, 0, Math.PI * 2);
   ctx.fill();

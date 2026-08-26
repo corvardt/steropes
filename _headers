@@ -1,0 +1,43 @@
+# Cache policy, and the reason there is a file for it at all.
+#
+# Keraunos and Tyche are built by Vite, which fingerprints every asset, so their
+# filenames change whenever their contents do and the browser can be told to
+# hold them forever without ever going stale. This project has no build step on
+# purpose — the page's claim is that it shows its working, and a reader can open
+# devtools on the deployed site and read the same `tests.js` that grades the
+# stream, comments and all. The cost of that is stable filenames, which is
+# exactly the case where a browser can be left running last week's code.
+#
+# So the policy is set by hand instead. Nothing here is a performance tweak;
+# every line is about which of two failure modes a given file can afford.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# The typeface. A given weight and subset of a released face does not change, so
+# this is the one thing safe to hold indefinitely, and it is also the heaviest
+# thing on the page — 30KB of the two latin files against 23KB for the whole of
+# the gzipped source. If a face is ever swapped, rename the file rather than
+# editing it in place; that is what makes this line true.
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The source, under names that never change. Revalidated on every visit: the
+# request costs a round trip and a 304, and the alternative is a returning
+# reader running a stale copy of the tests while the badges claim otherwise,
+# which is the one kind of wrong this page cannot be.
+/src/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/crt.css
+  Cache-Control: public, max-age=0, must-revalidate
+
+# The document, which carries the relay's address in a meta tag. Held, it would
+# pin a reader to a relay that has since moved, and the symptom would be a bezel
+# stuck on `[ linking ]` with nothing to say why.
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
