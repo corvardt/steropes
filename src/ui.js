@@ -12,7 +12,6 @@ import { createReader, DRAWS, expected, keysTyped, monkey, rangeDraw, expose } f
 import { plate, exposurePlate, download } from "./art.js";
 import { render as renderBlockie, blockieDraw } from "./blockie.js";
 import { SPARK_W, SPARK_H, headroom, sparkY, trace } from "./spark.js";
-import { raster, scatter } from "./grain.js";
 import {
   apply,
   applyContrast,
@@ -1166,19 +1165,8 @@ if (!FEED) {
   });
 }
 
-// Both tiles are the whole pool redrawn, so they run on the badges' cadence
-// rather than the readouts': at 250ms it would be sixteen thousand cells four
-// times a second for a picture that changes by two bytes.
-function grain() {
-  const bytes = pool.peek();
-  raster($("grain-bits"), bytes, ink("--c-text"));
-  scatter($("grain-pairs"), bytes, ink("--c-text"));
-}
-
 readouts();
 badges();
-grain();
 setInterval(readouts, 250);
 setInterval(badges, 2000);
-setInterval(grain, 2000);
 requestAnimationFrame(frame);

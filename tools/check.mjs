@@ -16,7 +16,6 @@ import { createReader, below, between, shuffle, uuid, monkey, keysTyped, DECK, K
 import { WORDS } from "../src/words.js";
 import { blockie } from "../src/blockie.js";
 import { SPARK_H, headroom, sparkY, trace } from "../src/spark.js";
-import { raster, scatter } from "../src/grain.js";
 
 // Resolved from this file rather than the cwd, so the check behaves the same
 // whether npm runs it from the root or someone runs it from tools/.
@@ -364,53 +363,6 @@ console.log("\nexposure");
   const bytes = await shot.done;
   check(bytes.join(",") === "7,8", "stopping early keeps what had already arrived");
   check(Date.now() - t0 < 500, "and resolves at once rather than serving out the window");
-}
-
-// ── the grain ────────────────────────────────────────────────────────────────
-//
-// Two pictures of the pool, and both are only worth looking at if a bit lands
-// where the picture says it does: a raster whose row wrap is off by one is a
-// diagonal artefact in what is meant to be the page's evenness readout.
-console.log("\nthe grain");
-{
-  const stub = () => {
-    const rects = [];
-    const ctx = {
-      rects,
-      setTransform() {},
-      clearRect() {},
-      beginPath() {},
-      fill() {},
-      rect: (x, y, w, h) => rects.push([x, y, w, h]),
-    };
-    return { clientWidth: 256, width: 0, height: 0, getContext: () => ctx, ctx };
-  };
-
-  const c = stub();
-  raster(c, Uint8Array.from([0b10000001, 0]), "#fff");
-  check(
-    c.ctx.rects.length === 2 && c.ctx.rects[0][0] === 0 && c.ctx.rects[1][0] === 14,
-    `MSB first along the row, got ${JSON.stringify(c.ctx.rects)}`
-  );
-  check(c.ctx.rects.every(([, y]) => y === 0), "and the first byte stays on the first row");
-
-  // 128 bits a row, so bit 128 is the first cell of row two.
-  const wrap = stub();
-  const row = new Uint8Array(17);
-  row[16] = 0b10000000;
-  raster(wrap, row, "#fff");
-  check(
-    wrap.ctx.rects.length === 1 && wrap.ctx.rects[0][0] === 0 && wrap.ctx.rects[0][1] === 2,
-    `bit 128 opens the second row, got ${JSON.stringify(wrap.ctx.rects)}`
-  );
-
-  const s = stub();
-  scatter(s, Uint8Array.from([0, 128, 255]), "#fff");
-  check(
-    s.ctx.rects.length === 1 && s.ctx.rects[0][0] === 0 && s.ctx.rects[0][1] === 128,
-    `a pair is one point at x=b0, y=b1, got ${JSON.stringify(s.ctx.rects)}`
-  );
-  check(s.ctx.rects.length === 1, "and an odd byte with no partner is not plotted against nothing");
 }
 
 console.log(failures ? `\n${failures} failed\n` : "\nall passed\n");
