@@ -1002,6 +1002,31 @@ span.spark {
 }
 
 /* ── The raw stream ───────────────────────────────────────────────────────── */
+/* The grain: two square tiles side by side, since the pair is the point — one
+   says whether the stream is even, the other whether it is independent. */
+.grain {
+  margin-top: 0.5rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.grain canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid var(--c-line);
+}
+
+.grain figcaption {
+  margin-top: 0.35rem;
+  font-size: 10px;
+  line-height: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--c-dim);
+}
+
 /* ── Placeholders ─────────────────────────────────────────────────────────────
    Every readout that fills from the sky holds the height it will settle at, so
    the column is laid out once rather than shoved down its own length as each
