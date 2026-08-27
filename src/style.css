@@ -34,6 +34,14 @@
   --grid: rgba(255, 255, 255, 0.022);
 
   --gap: 1.5rem;
+
+  /* The banner strip the walk is drawn in. A token because three rules need the
+     same number: the strip itself, the readout column that has to keep its text
+     out of it, and the fade. `--walk-lit` is the share of the strip the mask
+     leaves fully opaque, and ui.js reads it back so the drawing is fitted to
+     the part of the tube that is actually lit rather than to the whole strip. */
+  --walk-h: clamp(96px, 16vh, 160px);
+  --walk-lit: 0.55;
 }
 
 :root[data-theme="light"] {
@@ -302,37 +310,41 @@ a.ctl:hover {
 
 .stage {
   position: relative;
-  /* A faint rule grid behind the walk: this is a plotter's paper, and it gives
-     the eye a scale to read the walk's rescaling against. */
+  /* A faint rule grid: this is a plotter's paper, and it is what the walk's
+     banner is drawn across at the foot of it. */
   background-image: linear-gradient(var(--grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid) 1px, transparent 1px);
   background-size: 32px 32px;
 }
 
 /* The instrument, worn as a banner: a quiet strip pinned along the bottom of
-   the tube, running under bezel and readouts alike. Translucent and
-   untouchable, so the walk is always visible being drawn while everything it
-   passes under — controls, readouts, the answer — stays readable and clickable
-   straight through it. The top edge is masked to nothing rather than cut, so
-   the strip has no border: the page simply dissolves into the sky. */
+   the tube, running under the readout column and the controls alike.
+   Translucent and untouchable, so the walk is always visible being drawn while
+   everything it passes under stays readable and clickable straight through it.
+   The top edge is masked to nothing rather than cut, so the strip has no
+   border: the page simply dissolves into the sky.
+
+   It stops at the status bezel rather than crossing it. That line is the one
+   place on the page where furniture carries values — the clock, the last thing
+   that happened — on no background of its own, and a walk drawn through it is
+   a readout with a line scribbled across it. */
 #walk {
   display: block;
   position: fixed;
-  inset: auto 0 0 0;
+  inset: auto 0 29px 0; /* the status bezel: 28px and its rule */
   width: 100%;
-  height: clamp(96px, 16vh, 160px);
+  height: var(--walk-h);
   z-index: 5;
   pointer-events: none;
   opacity: 0.55;
-  -webkit-mask-image: linear-gradient(to top, #000 55%, transparent);
-  mask-image: linear-gradient(to top, #000 55%, transparent);
+  -webkit-mask-image: linear-gradient(to top, #000 calc(var(--walk-lit) * 100%), transparent);
+  mask-image: linear-gradient(to top, #000 calc(var(--walk-lit) * 100%), transparent);
 }
 
-/* The one part of the page that takes input, and the answer it produces, keep
-   their surface above the banner: the walk runs behind the form, seen through
-   it, never over it. */
-.bar,
-.card {
+/* The one part of the page that takes input keeps its surface above the banner:
+   the walk runs behind the form, seen through it, never over it. The card does
+   the same, in its own block below. */
+.bar {
   z-index: 6;
 }
 
@@ -340,6 +352,10 @@ a.ctl:hover {
   border-left: 1px solid var(--c-line);
   background: var(--c-panel);
   padding: var(--gap);
+  /* The column scrolls under the banner, which is the point — but its last
+     rows would end up under it too, read through a walk. The strip's height
+     back, so the end of the column can always be scrolled clear of the sky. */
+  padding-bottom: calc(var(--gap) + var(--walk-h));
   display: flex;
   flex-direction: column;
   gap: var(--gap);
@@ -454,7 +470,8 @@ a.ctl:hover {
   align-items: center;
   gap: 0.5rem 1.25rem;
   padding: var(--gap);
-  /* Reads over the walk without hiding it. */
+  /* Sits at the foot of the stage, where the banner passes behind it: the
+     gradient keeps the controls legible without hiding the walk. */
   background: linear-gradient(transparent, var(--c-void) 55%);
 }
 
@@ -529,6 +546,7 @@ a.ctl:hover {
   position: absolute;
   top: 50%;
   left: 50%;
+  z-index: 6; /* over the banner: the answer is never read through the walk */
   transform: translate(-50%, -50%);
   width: min(46rem, calc(100% - 3rem));
   max-height: calc(100% - 9rem);
@@ -1223,7 +1241,10 @@ span.spark {
      thumb's width apart, and spent above and below the draws it is most of a
      row of buttons. */
   .bar {
-    position: static;
+    /* Relative, not static: the strip is in the flow here, and a static element
+       ignores the z-index that keeps it off the banner. Scrolled down to the
+       foot of the page the controls would otherwise be drawn through. */
+    position: relative;
     background: none;
     border-top: 1px solid var(--c-line);
     padding: 0.75rem var(--gap);
