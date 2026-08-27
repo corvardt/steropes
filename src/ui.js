@@ -241,18 +241,6 @@ setInterval(tick, 1000);
 const canvas = $("walk");
 const ctx = canvas.getContext("2d");
 
-// The walk no longer owns the stage: it is a banner, a quiet strip pinned along
-// the bottom of the tube (see #walk in style.css). It stays centred in that
-// strip, as it was centred in the panel. A walk anchored into one corner reads
-// as a drawing that has slipped off its paper, and on a wide screen it leaves
-// the whole banner empty beside it.
-//
-// Centred in the lit part, not in the box. The strip is masked to nothing over
-// its top, so fitting the drawing to the full height puts its upper half in the
-// fade. `--walk-lit` is the share the mask leaves opaque, read from the
-// stylesheet for the same reason the colours are: one number, one place.
-const LIT = Number(ink("--walk-lit")) || 1;
-
 // Walk-space, in integer steps. The view that maps it to pixels is derived every
 // frame from the extent of the path, so the drawing frames itself and the zoom
 // level is itself a readout: how far the sky has wandered since you arrived.
@@ -366,18 +354,10 @@ function frame(now) {
     if (p.y > maxY) maxY = p.y;
   }
 
-  // The band the drawing is fitted into, measured up from the bottom of the
-  // strip: everything the mask leaves fully lit, plus half of the fade above it.
-  // Stopping at the lit part alone would waste the gradient and leave the walk a
-  // sliver; taking the whole strip is what put its top half in the dark.
-  const band = h * (LIT + (1 - LIT) / 2);
-  // Scaled to the strip: 48px of padding inside a 110px banner would leave the
-  // walk a sliver, so the margin is a fifth of the short side, capped at the old
-  // panel value for anything taller.
-  const pad = Math.min(48, Math.floor(Math.min(w, band) * 0.2));
+  const pad = 48;
   const target = Math.min(
     (w - pad * 2) / Math.max(1, maxX - minX),
-    (band - pad * 2) / Math.max(1, maxY - minY)
+    (h - pad * 2) / Math.max(1, maxY - minY)
   );
   // Eased so the rescale reads as the instrument adjusting rather than jumping.
   const k = ease(FOLLOW);
@@ -385,9 +365,7 @@ function frame(now) {
   view.cx += ((minX + maxX) / 2 - view.cx) * k;
   view.cy += ((minY + maxY) / 2 - view.cy) * k;
 
-  // The walk's centre maps to the middle of the lit band, which is the middle of
-  // the strip's bottom 55% rather than of the strip.
-  const px = (p) => [w / 2 + (p.x - view.cx) * view.s, h - band / 2 + (p.y - view.cy) * view.s];
+  const px = (p) => [w / 2 + (p.x - view.cx) * view.s, h / 2 + (p.y - view.cy) * view.s];
 
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
