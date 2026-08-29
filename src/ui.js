@@ -151,16 +151,15 @@ followSystem((theme) => {
 
 // ── the bezel ────────────────────────────────────────────────────────────────
 //
-// The two bars the whole set wears. The top one carries the link: an indicator
-// that is itself a strike counter, the state when there is a state worth naming,
-// and which sky is being handed over. The bottom one is the running commentary.
+// The two bars the whole set wears. The top one carries the link: the state when
+// there is a state worth naming, and which sky is being handed over. The bottom
+// one is the running commentary.
 //
 // Both matter more here than on an instrument that draws its own subject. A page
 // waiting for lightning and a page that has quietly stopped receiving look
 // identical, and without a line that says which, the honest answer to "is this
 // working" is a shrug.
 
-const pip = $("pip");
 const stateEl = $("state");
 
 // Which sky is being handed over, and it is not the relay.
@@ -198,18 +197,10 @@ function link(phase, node) {
     host = node;
     showNode();
   }
-  pip.dataset.phase = phase;
   const named = NAMED[phase];
   stateEl.textContent = named ? `[ ${named} ]` : "";
   stateEl.hidden = !named;
 }
-
-/** Every strike that gets past the dedup filter, marked. Driven from script
- *  rather than a class, because these arrive faster than a CSS animation can be
- *  restarted by hand and the effect is a beat, not a state: the web animation
- *  takes over opacity for its 200ms and hands it straight back to the idle
- *  breathe underneath. */
-const beat = () => pip.animate([{ opacity: 1 }, { opacity: 0.2 }, { opacity: 1 }], 200);
 
 const messageEl = $("message");
 const clockEl = $("clock");
@@ -1147,7 +1138,6 @@ if (!FEED) {
       if (accepted) {
         kept++;
         recent.push(Date.now());
-        if (!still) beat();
       } else {
         // The kept ones are listed from onBytes below, where the bytes they
         // became are actually in hand. This is the only place a rejection is.

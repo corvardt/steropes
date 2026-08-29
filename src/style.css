@@ -189,26 +189,6 @@ body {
   gap: 8px;
 }
 
-/* The indicator is itself a strike counter: it flashes on arrival. Idling, it
-   breathes, so a quiet sky reads as running rather than as dead. */
-.pip {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--c-land);
-  flex-shrink: 0;
-}
-
-.pip[data-phase="live"] {
-  background: var(--c-text);
-  animation: breathe 2.8s ease-in-out infinite;
-}
-
-/* Not linked and looking for it, which is the medium's own seek. */
-.pip:not([data-phase="live"]) {
-  animation: seek 1.6s ease-in-out infinite;
-}
-
 /* A state worth naming is a state that is not live, so this one does not get to
    be subtle. */
 .state {
