@@ -466,7 +466,8 @@ src/          source.js   the socket, the dedup filter, extraction
 crt.css       the shared medium: palette, type, glass, decay. Carried verbatim
               from Keraunos by way of Oikos, so the whole set is one instrument
 _headers      cache policy. Stable filenames need one; see above
-fonts/        IBM Plex Mono, served from this origin rather than from Google
+fonts/        IBM Plex Mono, served from this origin rather than from Google.
+              OFL.txt is their licence and has to ship alongside them
 tools/        check.mjs   npm test
               smoke.mjs   npm run smoke
               analyse.mjs npm run analyse
@@ -475,7 +476,8 @@ tools/        check.mjs   npm test
 glyph.svg     the favicon. apple-touch-icon.png is the same, squared and bled
 og.png        the card. Captured, not drawn; `npm run shots`
 fixtures/     strikes.jsonl   3,738 deduplicated strikes, the sample every
-                              figure above was measured against
+                              figure above was measured against. Blitzortung's
+                              data, not this project's; README.md says so
 ```
 
 `tests.js` is imported by both the page and the tools on purpose. It used to be
@@ -504,6 +506,13 @@ by way of the classic ethereum-blockies construction.
 [MIT](LICENSE). Do what you like with the code.
 
 The data is a separate question. Strikes come from the Blitzortung network and
-are theirs, under their own terms; nothing here grants any rights to them. If
-you run your own instance, run your own relay and be a good guest of a service
-that volunteers pay for.
+are theirs, under their own terms: private and non-commercial use only. Nothing
+here grants any rights to them. That covers the live feed and it covers
+`fixtures/strikes.jsonl`, which is a harvested sample sitting in this repository
+and not under its licence; see `fixtures/README.md`. If you run your own
+instance, run your own relay and be a good guest of a service that volunteers
+pay for.
+
+The fonts are a third question. IBM Plex Mono is under the SIL Open Font License
+1.1, not MIT. The licence travels with the files in `fonts/OFL.txt` and must
+stay there in any copy.
