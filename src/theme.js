@@ -180,10 +180,11 @@ export function applyContrast(name) {
 /* The three pieces of glass a reader can take off. Attributes rather than a
    class on each layer: the medium owns what they look like, and this only says
    whether the tube has them. The drift is the faintest of them and the most
-   expensive to composite, which is why it is worth being able to remove. */
+   expensive to composite, which is why it ships off and is opt-in; the markup
+   carries `data-drift='off'` for the frame before this runs. */
 export const GLASS = ["scanlines", "sweep", "drift"];
 
-export const glass = (part) => recall(part, "on") !== "off";
+export const glass = (part) => recall(part, part === "drift" ? "off" : "on") !== "off";
 
 export function applyGlass(part, on) {
   document.documentElement.dataset[part] = on ? "on" : "off";
