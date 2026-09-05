@@ -10,8 +10,24 @@
 #
 # So the policy is set by hand instead. Nothing here is a performance tweak;
 # every line is about which of two failure modes a given file can afford.
+#
+# The policy below is the creed enforced rather than promised. `default-src
+# 'none'` denies every fetch this page could make, and this instrument reaches
+# exactly one thing that is not itself: the relay, which is the same one
+# Keraunos drinks from and the same URL the `feed` meta tag carries. There is no
+# other request on the page.
+#
+# The `?feed=wss://…` override still works in development, which is served
+# without these headers; on the deployed site it is refused, and that is the
+# right way round for a relay somebody else pays for.
+#
+# The hash is of the medium script in the head, which is inline because it has
+# to run before first paint and cannot afford a round trip. Edit that script and
+# recompute:
+#   python3 -c "import re,hashlib,base64;s=re.search(r'<script>(.*?)</script>',open('index.html').read(),re.S).group(1);print(base64.b64encode(hashlib.sha256(s.encode()).digest()).decode())"
 
 /*
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'sha256-jMnoz/9oZu0F0vd1uz9K6VJ6hDWSqWYMhWNsW4lqk+w='; style-src 'self'; font-src 'self'; img-src 'self'; connect-src wss://keraunos-relay.covardt.workers.dev; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
 
