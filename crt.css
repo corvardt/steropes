@@ -1,7 +1,10 @@
 /* ── crt.css ────────────────────────────────────────────────────────────────
    The shared medium. Palette, glass and decay, carried verbatim from Keraunos
    so the index and every project subdomain are the same instrument. Nothing
-   page-specific belongs in here — see index.css for that. */
+   page-specific belongs in here, see index.css for that.
+
+   Canonical copy: Keraunos/src/crt.css. The others are written by
+   `node scripts/fanout.cjs` from inside Keraunos; edit this one and fan out. */
 
 /* ── Type ───────────────────────────────────────────────────────────────────
    Served from this origin, not from Google. A page whose creed line is about
